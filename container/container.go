@@ -68,3 +68,13 @@ func (c *Container) MakeRequest(action string, request OurdRequest) (response *O
 	return &OurdResponse{Payload: jsonData}, nil
 
 }
+
+// PrivateDatabase returns ID of the public database
+func (c *Container) PublicDatabaseID() string {
+	return "_public"
+}
+
+// PrivateDatabase returns ID of the current user's private database
+func (c *Container) PrivateDatabaseID() string {
+	return "_private"
+}

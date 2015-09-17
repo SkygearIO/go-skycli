@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var handleAsset bool
@@ -13,6 +14,23 @@ var promptComplexValue bool
 var prettyPrint bool
 var recordOutputPath string
 var createWhenEdit bool
+var recordUsePrivateDatabase bool
+
+func usingDatabaseID(c *odcontainer.Container) string {
+	if recordUsePrivateDatabase {
+		return c.PrivateDatabaseID()
+	} else {
+		return c.PublicDatabaseID()
+	}
+}
+
+func newDatabase() *odcontainer.Database {
+	c := newContainer()
+	return &odcontainer.Database{
+		Container:  c,
+		DatabaseID: usingDatabaseID(c),
+	}
+}
 
 var recordCmd = &cobra.Command{
 	Use:   "record",
@@ -102,6 +120,9 @@ var recordQueryCmd = &cobra.Command{
 }
 
 func init() {
+	recordCmd.PersistentFlags().BoolVarP(&recordUsePrivateDatabase, "private", "p", false, "Database. Default is Public.")
+	viper.BindPFlag("use_private_database", recordCmd.PersistentFlags().Lookup("private"))
+
 	recordImportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "upload assets")
 	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
 	recordImportCmd.Flags().BoolVar(&promptComplexValue, "prompt-complex", true, "prompt when complex value is used")
