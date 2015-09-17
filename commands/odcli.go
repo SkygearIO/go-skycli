@@ -41,3 +41,11 @@ func AddCommands() {
 	OurdCliCmd.AddCommand(schemaCmd)
 	OurdCliCmd.AddCommand(generateDocCmd)
 }
+
+func newContainer() *container.Container {
+	return &container.Container{
+		APIKey:      viper.GetString("api_key"),
+		Endpoint:    viper.GetString("endpoint"),
+		AccessToken: viper.GetString("access_token"),
+	}
+}
