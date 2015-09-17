@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	odcontainer "github.com/oursky/ourd-cli/container"
+	odrecord "github.com/oursky/ourd-cli/record"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -75,11 +77,25 @@ var recordSetCmd = &cobra.Command{
 	Use:   "set <record_id> <key=value> [<key=value> ...]",
 	Short: "Set attributes on a record",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 2 {
-			cmd.Usage()
-			os.Exit(1)
+		checkMinArgCount(cmd, args, 2)
+
+		modifyRecord, err := odrecord.MakeEmptyRecord(args[0])
+		if err != nil {
+			fatal(err)
 		}
-		fmt.Println("not implemented")
+
+		for _, arg := range args[1:] {
+			err := modifyRecord.Assign(arg)
+			if err != nil {
+				fatal(err)
+			}
+		}
+
+		db := newDatabase()
+		err = db.SaveRecord(modifyRecord)
+		if err != nil {
+			fatal(err)
+		}
 	},
 }
 
