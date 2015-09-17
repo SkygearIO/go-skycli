@@ -103,11 +103,26 @@ var recordGetCmd = &cobra.Command{
 	Use:   "get <record_id> <key>",
 	Short: "Get value of a record attribute",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
-			cmd.Usage()
-			os.Exit(1)
+		checkMinArgCount(cmd, args, 2)
+		recordID := args[0]
+		desiredKey := args[1]
+		err := odrecord.CheckRecordID(recordID)
+		if err != nil {
+			fatal(err)
 		}
-		fmt.Println("not implemented")
+
+		db := newDatabase()
+		record, err := db.FetchRecord(recordID)
+		if err != nil {
+			fatal(err)
+		}
+
+		desiredValue, err := record.Get(desiredKey)
+		if err != nil {
+			fatal(err)
+		}
+
+		printValue(desiredValue)
 	},
 }
 
