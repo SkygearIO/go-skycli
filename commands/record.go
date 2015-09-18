@@ -1,15 +1,19 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"os/exec"
 	"strings"
 
 	odcontainer "github.com/oursky/ourd-cli/container"
 	odrecord "github.com/oursky/ourd-cli/record"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/twinj/uuid"
 )
 
 var handleAsset bool
@@ -178,6 +182,51 @@ var recordGetCmd = &cobra.Command{
 	},
 }
 
+func modifyWithEditor(record *odrecord.Record) error {
+	recordBytes, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	f, err := ioutil.TempFile("/tmp", "odcli")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(recordBytes)
+	if err != nil {
+		return err
+	}
+
+	editor := os.Getenv("EDITOR")
+	if editor == "" {
+		editor = "vim"
+	}
+
+	editorCmd := exec.Command(editor, f.Name())
+	editorCmd.Stdin = os.Stdin
+	editorCmd.Stdout = os.Stdout
+	editorCmd.Stderr = os.Stderr
+	err = editorCmd.Run()
+	if err != nil {
+		return err
+	}
+
+	f.Seek(0, 0)
+
+	jsonBytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(jsonBytes, record)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 var recordEditCmd = &cobra.Command{
 	Use:   "edit (<record_type|<record_id>)",
 	Short: "Edit a record",
@@ -186,10 +235,42 @@ var recordEditCmd = &cobra.Command{
 			cmd.Usage()
 			os.Exit(1)
 		}
-		fmt.Println("not implemented")
+
+		recordID := args[0]
+		if strings.Contains(recordID, "/") {
+			err := odrecord.CheckRecordID(recordID)
+			if err != nil {
+				fatal(err)
+			}
+		} else {
+			recordID = args[0] + "/" + uuid.NewV4().String()
+			createWhenEdit = true
+		}
+
+		var record *odrecord.Record
+		var err error
+		db := newDatabase()
+		if createWhenEdit {
+			record, _ = odrecord.MakeEmptyRecord(recordID)
+		} else {
+			record, err = db.FetchRecord(recordID)
+			if err != nil {
+				fatal(err)
+			}
+		}
+
+		err = modifyWithEditor(record)
+		if err != nil {
+			fatal(err)
+		}
+
+		err = db.SaveRecord(record)
+		if err != nil {
+			fatal(err)
+		}
+
 	},
 }
-
 var recordQueryCmd = &cobra.Command{
 	Use:   "query <record_type>",
 	Short: "Query records from database",
