@@ -81,7 +81,47 @@ var recordDeleteCmd = &cobra.Command{
 			cmd.Usage()
 			os.Exit(1)
 		}
-		fmt.Println("not implemented")
+
+		for _, arg := range args {
+			if err := odrecord.CheckRecordID(arg); err != nil {
+				fatal(err)
+			}
+		}
+
+		c := newContainer()
+
+		request := odcontainer.GenericRequest{}
+		request.Payload = map[string]interface{}{
+			"database_id": usingDatabaseID(c),
+			"ids":         args,
+		}
+
+		response, err := c.MakeRequest("record:delete", &request)
+		if err != nil {
+			fatal(err)
+		}
+
+		if response.IsError() {
+			requestError := response.Error()
+			fatal(errors.New(requestError.Message))
+		}
+
+		resultArray, ok := response.Payload["result"].([]interface{})
+		if !ok {
+			fatal(fmt.Errorf("Unexpected server data."))
+		}
+
+		for i, _ := range resultArray {
+			resultData, ok := resultArray[i].(map[string]interface{})
+			if !ok {
+				warn(fmt.Errorf("Encountered unexpected server data."))
+			}
+
+			if odcontainer.IsError(resultData) {
+				serverError := odcontainer.MakeError(resultData)
+				warn(formatRecordError(serverError))
+			}
+		}
 	},
 }
 
