@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	odcontainer "github.com/oursky/ourd-cli/container"
 	odrecord "github.com/oursky/ourd-cli/record"
@@ -32,6 +34,16 @@ func newDatabase() *odcontainer.Database {
 		Container:  c,
 		DatabaseID: usingDatabaseID(c),
 	}
+}
+
+func formatRecordError(err odcontainer.OurdError) error {
+	var fmtError error
+	if err.ID != "" {
+		fmtError = fmt.Errorf("Record %s: %s", err.ID, err.Message)
+	} else {
+		fmtError = errors.New(err.Message)
+	}
+	return fmtError
 }
 
 var recordCmd = &cobra.Command{
@@ -146,7 +158,49 @@ var recordQueryCmd = &cobra.Command{
 			cmd.Usage()
 			os.Exit(1)
 		}
-		fmt.Println("not implemented")
+
+		recordType := args[0]
+		if strings.Contains(recordType, "/") {
+			fatal(fmt.Errorf("Record type cannot contain '/'."))
+		}
+
+		c := newContainer()
+
+		request := odcontainer.GenericRequest{}
+		request.Payload = map[string]interface{}{
+			"database_id": usingDatabaseID(c),
+			"record_type": recordType,
+		}
+
+		response, err := c.MakeRequest("record:query", &request)
+		if err != nil {
+			fatal(err)
+		}
+
+		if response.IsError() {
+			requestError := response.Error()
+			fatal(errors.New(requestError.Message))
+		}
+
+		resultArray, ok := response.Payload["result"].([]interface{})
+		if !ok {
+			fatal(fmt.Errorf("Unexpected server data."))
+		}
+
+		for i, _ := range resultArray {
+			resultData, ok := resultArray[i].(map[string]interface{})
+			if !ok {
+				warn(fmt.Errorf("Encountered unexpected server data."))
+			}
+
+			if odcontainer.IsError(resultData) {
+				serverError := odcontainer.MakeError(resultData)
+				warn(formatRecordError(serverError))
+				continue
+			}
+
+			printValue(resultData)
+		}
 	},
 }
 
@@ -169,7 +223,7 @@ func init() {
 
 	recordQueryCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
 	recordQueryCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
-	recordQueryCmd.Flags().BoolVarP(&prettyPrint, "pretty-print", "p", false, "print output in a pretty format")
+	recordQueryCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordQueryCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 
 	recordCmd.AddCommand(recordImportCmd)

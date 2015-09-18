@@ -20,6 +20,10 @@ func fatal(err error) {
 	os.Exit(1)
 }
 
+func warn(err error) {
+	fmt.Fprintf(os.Stderr, "Warning: %s\n", err)
+}
+
 func printValue(value interface{}) {
 	switch value.(type) {
 	case []interface{}:
