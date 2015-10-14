@@ -1,7 +1,7 @@
 package container
 
-// OurdRequest encapsulates payload for making Ourd requests
-type OurdRequest interface {
+// SkygearRequest encapsulates payload for making Skygear requests
+type SkygearRequest interface {
 	// MakePayload creates map structure of the payload for sending
 	// to remove server
 	MakePayload() map[string]interface{}
@@ -17,38 +17,38 @@ func (r *GenericRequest) MakePayload() map[string]interface{} {
 	return r.Payload
 }
 
-// OurdResponse encapsulates payload received from Ourd
-type OurdResponse struct {
+// SkygearResponse encapsulates payload received from Skygear
+type SkygearResponse struct {
 	Payload map[string]interface{}
 }
 
 // IsError returns if response is an error
-func (r *OurdResponse) IsError() bool {
+func (r *SkygearResponse) IsError() bool {
 	_, ok := r.Payload["error"]
 	return ok
 }
 
 // Error returns error in the response if any
-func (r *OurdResponse) Error() *OurdError {
+func (r *SkygearResponse) Error() *SkygearError {
 	data, ok := r.Payload["error"].(map[string]interface{})
 	if !ok {
 		return nil
 	}
-	ourdError := MakeError(data)
-	return &ourdError
+	skygearError := MakeError(data)
+	return &skygearError
 }
 
-// OurdError encapsulates data of an Ourd response
-type OurdError struct {
+// SkygearError encapsulates data of an Skygear response
+type SkygearError struct {
 	ID      string
 	Message string
 	Code    int
 	Type    string
 }
 
-// MakeError creates an OurdError
-func MakeError(data map[string]interface{}) OurdError {
-	err := OurdError{}
+// MakeError creates an SkygearError
+func MakeError(data map[string]interface{}) SkygearError {
+	err := SkygearError{}
 	err.ID, _ = data["_id"].(string)
 	err.Message, _ = data["message"].(string)
 	if err.Message == "" {

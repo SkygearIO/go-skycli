@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Record represents data that belongs to an Ourd record
+// Record represents data that belongs to an Skygear record
 type Record struct {
 	RecordID string
 	Data     map[string]interface{}

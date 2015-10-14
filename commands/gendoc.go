@@ -22,6 +22,6 @@ var generateDocCmd = &cobra.Command{
 			generateDocDir += "/"
 		}
 
-		cobra.GenMarkdownTree(OurdCliCmd, generateDocDir)
+		cobra.GenMarkdownTree(SkygearCliCmd, generateDocDir)
 	},
 }

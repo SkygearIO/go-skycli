@@ -9,8 +9,8 @@ import (
 	"os/exec"
 	"strings"
 
-	odcontainer "github.com/oursky/ourd-cli/container"
-	odrecord "github.com/oursky/ourd-cli/record"
+	odcontainer "github.com/oursky/skycli/container"
+	odrecord "github.com/oursky/skycli/record"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/twinj/uuid"
@@ -40,7 +40,7 @@ func newDatabase() *odcontainer.Database {
 	}
 }
 
-func formatRecordError(err odcontainer.OurdError) error {
+func formatRecordError(err odcontainer.SkygearError) error {
 	var fmtError error
 	if err.ID != "" {
 		fmtError = fmt.Errorf("Record %s: %s", err.ID, err.Message)
@@ -188,7 +188,7 @@ func modifyWithEditor(record *odrecord.Record) error {
 		return err
 	}
 
-	f, err := ioutil.TempFile("/tmp", "odcli")
+	f, err := ioutil.TempFile("/tmp", "skycli")
 	if err != nil {
 		return err
 	}
@@ -335,7 +335,7 @@ func init() {
 
 	recordExportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
 	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
-	recordExportCmd.Flags().BoolVarP(&prettyPrint, "pretty-print", "p", false, "print output in a pretty format")
+	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "path to save the output to. If not specified, output is printed to stdout.")
 	recordGetCmd.Flags().BoolVarP(&handleAsset, "asset", "a", false, "If value to the key is an asset, download the asset and output the content of the asset.")

@@ -11,7 +11,7 @@ import (
 const actionPartSeparator = ":"
 const requestPartSeparator = "/"
 
-// Container is a client-side view of remote Ourd functionality
+// Container is a client-side view of remote Skygear functionality
 type Container struct {
 	APIKey      string
 	Endpoint    string
@@ -34,15 +34,15 @@ func (c *Container) createRequest(action string, payload map[string]interface{})
 	}
 	var jsonStr, _ = json.Marshal(payload)
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("X-Ourd-API-Key", c.APIKey)
+	req.Header.Set("X-Skygear-API-Key", c.APIKey)
 	if c.AccessToken != "" {
-		req.Header.Set("X-Ourd-Access-Token", c.AccessToken)
+		req.Header.Set("X-Skygear-Access-Token", c.AccessToken)
 	}
 	return req
 }
 
-// MakeRequest sends request to Ourd
-func (c *Container) MakeRequest(action string, request OurdRequest) (response *OurdResponse, err error) {
+// MakeRequest sends request to Skygear
+func (c *Container) MakeRequest(action string, request SkygearRequest) (response *SkygearResponse, err error) {
 
 	req := c.createRequest(action, request.MakePayload())
 	client := &http.Client{}
@@ -65,7 +65,7 @@ func (c *Container) MakeRequest(action string, request OurdRequest) (response *O
 		return
 	}
 
-	return &OurdResponse{Payload: jsonData}, nil
+	return &SkygearResponse{Payload: jsonData}, nil
 
 }
 

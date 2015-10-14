@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	odrecord "github.com/oursky/ourd-cli/record"
+	odrecord "github.com/oursky/skycli/record"
 )
 
 type Database struct {

@@ -1,13 +1,13 @@
-# odcli
+# skycli
 
 ## Overview
 
 ```
 
-Usage: odcli <command> [OPTIONS]
+Usage: skycli <command> [OPTIONS]
 
-  --config=~/.odcli Configuration file
-  --endpoint=       Ourd endpoint address
+  --config=~/.skycli Configuration file
+  --endpoint=       Skygear endpoint address
   --api_key=        API Key
 
 Commands:
@@ -23,7 +23,7 @@ Commands:
 ### record import
 ```
 
-Usage: odcli record import [OPTIONS] [<path> ...]
+Usage: skycli record import [OPTIONS] [<path> ...]
 
 Import records to database.
 
@@ -55,12 +55,12 @@ the top level JSON dictionary. User data should not use key that is
 prefixed with underscore `_`. Key that starts with underscore is reserved
 by system for special attribute such as `_id` for Record ID.
 
-The file format is mostly the same as the JSON format specified by Ourd
-API specification, but odcli also supports a convenient shorthand for
+The file format is mostly the same as the JSON format specified by Skygear
+API specification, but skycli also supports a convenient shorthand for
 specifying complex values such as asset, location and reference.
 
 If the value of a key is such a complex one, begining the value with the string
-`@` will signal to ourd that such value is a complex one.
+`@` will signal to skygear that such value is a complex one.
 
 The format of complex values are as follows:
 
@@ -76,7 +76,7 @@ to the location of the record file, rather than the current working directory.
 To escape a literal string that begins with a `@`, prefix a literal string
 with `@@`.
 
-When a value is a string and it begins with a `@`, odcli will warn to user
+When a value is a string and it begins with a `@`, skycli will warn to user
 that the value will be converted to a relevant type. To skip this warning
 and convert the string value to complex value, specify `--no-warn-complex`.
 
@@ -85,7 +85,7 @@ and convert the string value to complex value, specify `--no-warn-complex`.
 ### record export
 ```
 
-Usage: odcli record export [OPTIONS] <record_id> [<record_id> ...]
+Usage: skycli record export [OPTIONS] <record_id> [<record_id> ...]
 
 Export records from database.
 
@@ -102,7 +102,7 @@ stdout with each record delimited by a newline character. If the output
 is path to a directory, each record is saved individually in its own file.
 
 When exporting records with assets, the asset will be downloaded
-from the database before odcli write the output for the record. The output
+from the database before skycli write the output for the record. The output
 value of the key pointing to the asset will contain complex value as mentioned
 in FILE FORMAT.
 
@@ -119,7 +119,7 @@ See `record import`
 
 ```
 
-Usage: odcli record delete <record_id> [<record_id> ...]
+Usage: skycli record delete <record_id> [<record_id> ...]
 
 Delete Records from database.
 
@@ -129,7 +129,7 @@ Each specified record is deleted from the database.
 ### record set
 ```
 
-Usage: odcli record set <record_id> <key=value> [<key=value>...]
+Usage: skycli record set <record_id> <key=value> [<key=value>...]
 
 Set attributes on a record.
 
@@ -142,7 +142,7 @@ To specify other complex values, see FILE FORMAT.
 ### record get
 ```
 
-Usage: odcli record get [OPTIONS] <record_id> <key>
+Usage: skycli record get [OPTIONS] <record_id> <key>
 
 Get value of a record attribute.
 
@@ -158,7 +158,7 @@ Get value of a record attribute.
 
 ```
 
-Usage: odcli record edit [OPTIONS] [<record_type|<record_id>]
+Usage: skycli record edit [OPTIONS] [<record_type|<record_id>]
 
 Edit a record.
 
@@ -168,7 +168,7 @@ The program fetches the record from database and opens an editing
 session with content of the record. When exit, the content of the file
 is saved to database.
 
-If `--new` is specified, odcli opens an editing session without fetching
+If `--new` is specified, skycli opens an editing session without fetching
 a record. This is useful when creating a record.
 
 If <record_type> is specified instead of <record_id>, a new <record_id>
@@ -181,7 +181,7 @@ Saving an empty file aborts the action.
 ### record query
 ```
 
-Usage: odcli record query [OPTIONS] <record_type>
+Usage: skycli record query [OPTIONS] <record_type>
 
 Query records from database.
 
@@ -210,17 +210,17 @@ See `record import`
 
 ```
 
-Usage: odcli schema alter <record_type> add <column_name> <column_def>
+Usage: skycli schema alter <record_type> add <column_name> <column_def>
 
 Add a column to the record type.
 
 
-Usage: odcli schema alter <record_type> mv <column_name> <new_column_name>
+Usage: skycli schema alter <record_type> mv <column_name> <new_column_name>
 
 Rename a column in the record type.
 
 
-Usage: odcli schema alter <record_type> rm <column_name>
+Usage: skycli schema alter <record_type> rm <column_name>
 
 Remove a column in the record type.
 

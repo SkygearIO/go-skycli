@@ -8,22 +8,22 @@
         "name": "Hong Kong",
         "image": "@images/hongkong.jpg"
     }
-    $ odcli record import hongkong.json
+    $ skycli record import hongkong.json
     Found an asset in the "image" key of record "city/hongkong". Continue? (y/n) y
     $
 
 To use stdin,
 
-    $ echo '{ "_id": "city/hongkong", "name": "Hong Kong", "image": "@images/hongkong.jpg" }' | odcli record import -i
+    $ echo '{ "_id": "city/hongkong", "name": "Hong Kong", "image": "@images/hongkong.jpg" }' | skycli record import -i
 
 Alternatively,
 
-    $ odcli record set city/hongkong image=@images/hongkong.jpg name="Hong Kong"
+    $ skycli record set city/hongkong image=@images/hongkong.jpg name="Hong Kong"
 
 ## Exporting record
 
     # mkdir cities
-    # odcli record export -o cities city/hongkong city/paris city/london
+    # skycli record export -o cities city/hongkong city/paris city/london
     # cat cities/city-hongkong.json
     {"_id":"city/hongkong","name":"HongKong","image":"@file:city-hongkong.jpg"}
     # file cities/city-hongkong.jpg
@@ -31,7 +31,7 @@ Alternatively,
 
 Without exporting asset
 
-    # odcli record export --skip-asset -p city/hongkong
+    # skycli record export --skip-asset -p city/hongkong
     {
         "_id": "city/hongkong",
         "name": "Hong Kong",
@@ -40,4 +40,4 @@ Without exporting asset
 
 To download an asset
 
-    # odcli record get -a -o=hongkong.jpg city/hongkong image
+    # skycli record get -a -o=hongkong.jpg city/hongkong image
