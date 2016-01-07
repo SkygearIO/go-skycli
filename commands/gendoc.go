@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/cobra/doc"
 )
 
 var generateDocCmd = &cobra.Command{
@@ -22,6 +23,6 @@ var generateDocCmd = &cobra.Command{
 			generateDocDir += "/"
 		}
 
-		cobra.GenMarkdownTree(SkygearCliCmd, generateDocDir)
+		doc.GenMarkdownTree(SkygearCliCmd, generateDocDir)
 	},
 }
