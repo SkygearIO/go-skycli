@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	odcontainer "github.com/oursky/skycli/container"
@@ -56,11 +59,97 @@ var recordCmd = &cobra.Command{
 	Long:  "record is for modifying records in the database, providing Create, Read, Update and Delete functionality.",
 }
 
+func parseJsonFromStream(r io.Reader) ([]*odrecord.Record, error) {
+	var records []*odrecord.Record
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		s := scanner.Text()
+
+		var data map[string]interface{}
+		err := json.Unmarshal([]byte(s), &data)
+		if err != nil {
+			return nil, err
+		}
+
+		record, err := odrecord.MakeRecord(data)
+		if err != nil {
+			return nil, err
+		}
+
+		records = append(records, record)
+	}
+	return records, nil
+}
+
 var recordImportCmd = &cobra.Command{
 	Use:   "import [<path> ...]",
 	Short: "Import records to database",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("not implemented")
+		db := newDatabase()
+
+		var records []*odrecord.Record
+		// Stdin
+		if len(args) == 0 {
+			record, err := parseJsonFromStream(os.Stdin)
+			if err != nil {
+				fatal(err)
+			}
+			records = append(records, record...)
+		} else {
+			// TODO: Multiple file/dir
+			filename := args[0]
+			f, err := os.Open(filename)
+			if err != nil {
+				fatal(err)
+			}
+			defer f.Close()
+			info, err := f.Stat()
+			if err != nil {
+				fatal(err)
+			}
+			switch mode := info.Mode(); {
+			case mode.IsDir():
+				// Directory
+				filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
+					matched, err := filepath.Match("*.json", info.Name())
+					if err != nil {
+						fmt.Println(err)
+						return err
+					}
+					if matched {
+						f, err := os.Open(path)
+						if err != nil {
+							fatal(err)
+						}
+						defer f.Close()
+						record, err := parseJsonFromStream(f)
+						if err != nil {
+							fatal(err)
+						}
+						records = append(records, record...)
+					}
+					return nil
+				})
+			case mode.IsRegular():
+				// Single File
+				record, err := parseJsonFromStream(f)
+				if err != nil {
+					fatal(err)
+				}
+				records = append(records, record...)
+			}
+		}
+		// TODO: Verify
+
+		// Import
+		for _, record := range records {
+			//TODO: Upload asset
+			err := db.SaveRecord(record)
+			if err != nil {
+				fatal(err)
+			}
+		}
+		fmt.Println("Import DONE")
 	},
 }
 
