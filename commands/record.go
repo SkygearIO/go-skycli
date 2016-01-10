@@ -99,49 +99,49 @@ var recordImportCmd = &cobra.Command{
 			}
 			records = append(records, record...)
 		} else {
-			// TODO: Multiple file/dir
-			filename := args[0]
-			f, err := os.Open(filename)
-			if err != nil {
-				fatal(err)
-			}
-			defer f.Close()
-
-			info, err := f.Stat()
-			if err != nil {
-				fatal(err)
-			}
-			switch mode := info.Mode(); {
-			case mode.IsDir():
-				// Directory
-				filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
-					matched, err := filepath.Match("*.json$", info.Name())
-					if err != nil {
-						fmt.Println(err)
-						return err
-					}
-					if matched {
-						f, err := os.Open(path)
-						if err != nil {
-							fatal(err)
-						}
-						defer f.Close()
-
-						record, err := parseJsonFromStream(f)
-						if err != nil {
-							fatal(err)
-						}
-						records = append(records, record...)
-					}
-					return nil
-				})
-			case mode.IsRegular():
-				// Single File
-				record, err := parseJsonFromStream(f)
+			for _, filename := range args {
+				f, err := os.Open(filename)
 				if err != nil {
 					fatal(err)
 				}
-				records = append(records, record...)
+				defer f.Close()
+
+				info, err := f.Stat()
+				if err != nil {
+					fatal(err)
+				}
+				switch mode := info.Mode(); {
+				case mode.IsDir():
+					// Directory
+					filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
+						matched, err := filepath.Match("*.json$", info.Name())
+						if err != nil {
+							fmt.Println(err)
+							return err
+						}
+						if matched {
+							f, err := os.Open(path)
+							if err != nil {
+								fatal(err)
+							}
+							defer f.Close()
+
+							record, err := parseJsonFromStream(f)
+							if err != nil {
+								fatal(err)
+							}
+							records = append(records, record...)
+						}
+						return nil
+					})
+				case mode.IsRegular():
+					// Single File
+					record, err := parseJsonFromStream(f)
+					if err != nil {
+						fatal(err)
+					}
+					records = append(records, record...)
+				}
 			}
 		}
 		// TODO: Verify Record
