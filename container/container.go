@@ -3,6 +3,7 @@ package container
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -67,6 +68,45 @@ func (c *Container) MakeRequest(action string, request SkygearRequest) (response
 
 	return &SkygearResponse{Payload: jsonData}, nil
 
+}
+
+func (c *Container) createAssetRequest(method, filename, contentType string, body io.Reader) *http.Request {
+	url := c.Endpoint + "/files/" + filename
+
+	req, _ := http.NewRequest(method, url, body)
+	req.Header.Set("X-Skygear-API-Key", c.APIKey)
+	req.Header.Set("Content-Type", contentType)
+	if c.AccessToken != "" {
+		req.Header.Set("X-Skygear-Access-Token", c.AccessToken)
+	}
+	return req
+}
+
+// MakeAssetRequest sends asset request to Skygear
+func (c *Container) MakeAssetRequest(method, filename, contentType string, body io.Reader) (response *SkygearResponse, err error) {
+	req := c.createAssetRequest(method, filename, contentType, body)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	jsonDataFromHTTP, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		return
+	}
+
+	var jsonData map[string]interface{}
+	err = json.Unmarshal([]byte(jsonDataFromHTTP), &jsonData)
+
+	if err != nil {
+		return
+	}
+
+	return &SkygearResponse{Payload: jsonData}, nil
 }
 
 // PrivateDatabase returns ID of the public database

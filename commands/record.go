@@ -10,6 +10,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	odcontainer "github.com/oursky/skycli/container"
@@ -85,6 +87,7 @@ var recordImportCmd = &cobra.Command{
 	Use:   "import [<path> ...]",
 	Short: "Import records to database",
 	Run: func(cmd *cobra.Command, args []string) {
+		//TODO: handle error
 		db := newDatabase()
 
 		var records []*odrecord.Record
@@ -103,6 +106,7 @@ var recordImportCmd = &cobra.Command{
 				fatal(err)
 			}
 			defer f.Close()
+
 			info, err := f.Stat()
 			if err != nil {
 				fatal(err)
@@ -111,7 +115,7 @@ var recordImportCmd = &cobra.Command{
 			case mode.IsDir():
 				// Directory
 				filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
-					matched, err := filepath.Match("*.json", info.Name())
+					matched, err := filepath.Match("*.json$", info.Name())
 					if err != nil {
 						fmt.Println(err)
 						return err
@@ -122,6 +126,7 @@ var recordImportCmd = &cobra.Command{
 							fatal(err)
 						}
 						defer f.Close()
+
 						record, err := parseJsonFromStream(f)
 						if err != nil {
 							fatal(err)
@@ -139,11 +144,65 @@ var recordImportCmd = &cobra.Command{
 				records = append(records, record...)
 			}
 		}
-		// TODO: Verify
+		// TODO: Verify Record
 
 		// Import
+		var (
+			validAssetFile = regexp.MustCompile("^@file:")
+			validLocation  = regexp.MustCompile("^@loc:")
+			validReference = regexp.MustCompile("^@ref:")
+			validString    = regexp.MustCompile("^@str:")
+		)
 		for _, record := range records {
-			//TODO: Upload asset
+			// TODO: Create class for each complex val so that we can easily add new complex type
+			// TODO: Maybe move those handling of complxe value to SaveRecord()
+			for idx, val := range record.Data {
+				valStr := val.(string)
+				if validAssetFile.MatchString(valStr) {
+					path := validAssetFile.ReplaceAllString(valStr, "")
+					assetID, err := db.SaveAsset(path)
+					if err != nil {
+						fatal(err)
+					}
+					record.Data[idx] = "@asset:" + assetID
+				} else if validLocation.MatchString(valStr) {
+					str := validLocation.ReplaceAllString(valStr, "")
+					resultStr := strings.Split(str, ",")
+					if len(resultStr) != 2 {
+						fatal(fmt.Errorf("Wrong format of complex value(location)."))
+					}
+					var resultVal []float64
+					for _, x := range resultStr {
+						rx, err := strconv.ParseFloat(x, 64)
+						if err != nil {
+							fatal(err)
+						}
+						resultVal = append(resultVal, rx)
+					}
+					loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
+					locJson, err := json.Marshal(loc)
+					if err != nil {
+						fatal(err)
+					}
+					record.Data[idx] = string(locJson)
+				} else if validReference.MatchString(valStr) {
+					str := validReference.ReplaceAllString(valStr, "")
+					ref := map[string]interface{}{"$type": "ref", "$id": str}
+					refStr, err := json.Marshal(ref)
+					if err != nil {
+						fatal(err)
+					}
+					record.Data[idx] = string(refStr)
+				} else if validString.MatchString(valStr) {
+					str := validString.ReplaceAllString(valStr, "")
+					strMap := map[string]interface{}{"$type": "str", "$str": str}
+					strStr, err := json.Marshal(strMap)
+					if err != nil {
+						fatal(err)
+					}
+					record.Data[idx] = string(strStr)
+				}
+			}
 			err := db.SaveRecord(record)
 			if err != nil {
 				fatal(err)
