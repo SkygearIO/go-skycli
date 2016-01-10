@@ -70,6 +70,25 @@ func (d *Database) SaveRecord(record *odrecord.Record) (err error) {
 	if response.IsError() {
 		requestError := response.Error()
 		err = errors.New(requestError.Message)
+		return
+	}
+
+	resultArray, ok := response.Payload["result"].([]interface{})
+	if !ok || len(resultArray) < 1 {
+		err = fmt.Errorf("Unexpected server data.")
+		return
+	}
+
+	resultData, ok := resultArray[0].(map[string]interface{})
+	if !ok {
+		err = fmt.Errorf("Unexpected server data.")
+		return
+	}
+
+	if IsError(resultData) {
+		serverError := MakeError(resultData)
+		err = errors.New(serverError.Message)
+		return
 	}
 	return
 }

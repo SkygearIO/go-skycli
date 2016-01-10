@@ -21,9 +21,9 @@ import (
 	"github.com/twinj/uuid"
 )
 
-var handleAsset bool
+var skipAsset bool
 var assetBaseDirectory string
-var promptComplexValue bool
+var noWarnComplexValue bool
 var prettyPrint bool
 var recordOutputPath string
 var createWhenEdit bool
@@ -70,12 +70,14 @@ func parseJsonFromStream(r io.Reader) ([]*odrecord.Record, error) {
 		var data map[string]interface{}
 		err := json.Unmarshal([]byte(s), &data)
 		if err != nil {
-			return nil, err
+			warn(err)
+			continue
 		}
 
 		record, err := odrecord.MakeRecord(data)
 		if err != nil {
-			return nil, err
+			warn(err)
+			continue
 		}
 
 		records = append(records, record)
@@ -83,11 +85,134 @@ func parseJsonFromStream(r io.Reader) ([]*odrecord.Record, error) {
 	return records, nil
 }
 
+var (
+	validAssetFile = regexp.MustCompile("^@file:")
+	validLocation  = regexp.MustCompile("^@loc:")
+	validReference = regexp.MustCompile("^@ref:")
+	validString    = regexp.MustCompile("^@str:")
+)
+
+func handleAsset(db *odcontainer.Database, record *odrecord.Record) error {
+	for idx, val := range record.Data {
+		valStr := val.(string)
+		if validAssetFile.MatchString(valStr) {
+			if skipAsset {
+				delete(record.Data, idx)
+			} else {
+				path := validAssetFile.ReplaceAllString(valStr, "")
+				if !filepath.IsAbs(path) && assetBaseDirectory != "" {
+					path = assetBaseDirectory + "/" + path
+				}
+				assetID, err := db.SaveAsset(path)
+				if err != nil {
+					return err
+				}
+				record.Data[idx] = "@asset:" + assetID
+			}
+		}
+	}
+	return nil
+}
+
+func complexValueConfirmation(target string) (bool, error) {
+	if noWarnComplexValue {
+		return true, nil
+	}
+
+	var response string
+	fmt.Printf("Found complex value %s. Convert? (y or n) ", target)
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		return false, err
+	}
+
+	if len(response) == 0 {
+		return false, err
+	}
+
+	if response[0] == 'y' || response[0] == 'Y' {
+		return true, nil
+	} else if response[0] == 'n' || response[0] == 'N' {
+		return false, nil
+	} else {
+		fmt.Println("Unexpected response")
+		return complexValueConfirmation(target)
+	}
+}
+
+// TODO: Create class for each complex val so that we can easily add new complex type
+func convertComplexValue(record *odrecord.Record) error {
+	for idx, val := range record.Data {
+		valStr := val.(string)
+		if validLocation.MatchString(valStr) {
+			convert, err := complexValueConfirmation(valStr)
+			if err != nil {
+				return err
+			}
+			if !convert {
+				continue
+			}
+
+			str := validLocation.ReplaceAllString(valStr, "")
+			resultStr := strings.Split(str, ",")
+			if len(resultStr) != 2 {
+				return fmt.Errorf("Wrong format of complex value(location).")
+			}
+			var resultVal []float64
+			for _, x := range resultStr {
+				rx, err := strconv.ParseFloat(x, 64)
+				if err != nil {
+					return err
+				}
+				resultVal = append(resultVal, rx)
+			}
+			loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
+			locJson, err := json.Marshal(loc)
+			if err != nil {
+				return err
+			}
+			record.Data[idx] = string(locJson)
+		} else if validReference.MatchString(valStr) {
+			convert, err := complexValueConfirmation(valStr)
+			if err != nil {
+				return err
+			}
+			if !convert {
+				continue
+			}
+
+			str := validReference.ReplaceAllString(valStr, "")
+			ref := map[string]interface{}{"$type": "ref", "$id": str}
+			refStr, err := json.Marshal(ref)
+			if err != nil {
+				return err
+			}
+			record.Data[idx] = string(refStr)
+		} else if validString.MatchString(valStr) {
+			convert, err := complexValueConfirmation(valStr)
+			if err != nil {
+				return err
+			}
+			if !convert {
+				continue
+			}
+
+			str := validString.ReplaceAllString(valStr, "")
+			strMap := map[string]interface{}{"$type": "str", "$str": str}
+			strStr, err := json.Marshal(strMap)
+			if err != nil {
+				return err
+			}
+			record.Data[idx] = string(strStr)
+		}
+	}
+	return nil
+}
+
 var recordImportCmd = &cobra.Command{
 	Use:   "import [<path> ...]",
 	Short: "Import records to database",
 	Run: func(cmd *cobra.Command, args []string) {
-		//TODO: handle error
 		db := newDatabase()
 
 		var records []*odrecord.Record
@@ -102,33 +227,37 @@ var recordImportCmd = &cobra.Command{
 			for _, filename := range args {
 				f, err := os.Open(filename)
 				if err != nil {
-					fatal(err)
+					warn(err)
+					continue
 				}
 				defer f.Close()
 
 				info, err := f.Stat()
 				if err != nil {
-					fatal(err)
+					warn(err)
+					continue
 				}
 				switch mode := info.Mode(); {
 				case mode.IsDir():
 					// Directory
 					filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
-						matched, err := filepath.Match("*.json$", info.Name())
+						matched, err := filepath.Match("*.json", info.Name())
 						if err != nil {
-							fmt.Println(err)
-							return err
+							warn(err)
+							return nil
 						}
 						if matched {
 							f, err := os.Open(path)
 							if err != nil {
-								fatal(err)
+								warn(err)
+								return nil
 							}
 							defer f.Close()
 
 							record, err := parseJsonFromStream(f)
 							if err != nil {
-								fatal(err)
+								warn(err)
+								return nil
 							}
 							records = append(records, record...)
 						}
@@ -138,74 +267,32 @@ var recordImportCmd = &cobra.Command{
 					// Single File
 					record, err := parseJsonFromStream(f)
 					if err != nil {
-						fatal(err)
+						warn(err)
+						continue
 					}
 					records = append(records, record...)
 				}
 			}
 		}
-		// TODO: Verify Record
 
 		// Import
-		var (
-			validAssetFile = regexp.MustCompile("^@file:")
-			validLocation  = regexp.MustCompile("^@loc:")
-			validReference = regexp.MustCompile("^@ref:")
-			validString    = regexp.MustCompile("^@str:")
-		)
 		for _, record := range records {
-			// TODO: Create class for each complex val so that we can easily add new complex type
-			// TODO: Maybe move those handling of complxe value to SaveRecord()
-			for idx, val := range record.Data {
-				valStr := val.(string)
-				if validAssetFile.MatchString(valStr) {
-					path := validAssetFile.ReplaceAllString(valStr, "")
-					assetID, err := db.SaveAsset(path)
-					if err != nil {
-						fatal(err)
-					}
-					record.Data[idx] = "@asset:" + assetID
-				} else if validLocation.MatchString(valStr) {
-					str := validLocation.ReplaceAllString(valStr, "")
-					resultStr := strings.Split(str, ",")
-					if len(resultStr) != 2 {
-						fatal(fmt.Errorf("Wrong format of complex value(location)."))
-					}
-					var resultVal []float64
-					for _, x := range resultStr {
-						rx, err := strconv.ParseFloat(x, 64)
-						if err != nil {
-							fatal(err)
-						}
-						resultVal = append(resultVal, rx)
-					}
-					loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
-					locJson, err := json.Marshal(loc)
-					if err != nil {
-						fatal(err)
-					}
-					record.Data[idx] = string(locJson)
-				} else if validReference.MatchString(valStr) {
-					str := validReference.ReplaceAllString(valStr, "")
-					ref := map[string]interface{}{"$type": "ref", "$id": str}
-					refStr, err := json.Marshal(ref)
-					if err != nil {
-						fatal(err)
-					}
-					record.Data[idx] = string(refStr)
-				} else if validString.MatchString(valStr) {
-					str := validString.ReplaceAllString(valStr, "")
-					strMap := map[string]interface{}{"$type": "str", "$str": str}
-					strStr, err := json.Marshal(strMap)
-					if err != nil {
-						fatal(err)
-					}
-					record.Data[idx] = string(strStr)
-				}
-			}
-			err := db.SaveRecord(record)
+			err := handleAsset(db, record)
 			if err != nil {
-				fatal(err)
+				warn(err)
+				continue
+			}
+
+			err = convertComplexValue(record)
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			err = db.SaveRecord(record)
+			if err != nil {
+				warn(err)
+				continue
 			}
 		}
 		fmt.Println("Import DONE")
@@ -477,20 +564,20 @@ func init() {
 	recordCmd.PersistentFlags().BoolVarP(&recordUsePrivateDatabase, "private", "p", false, "Database. Default is Public.")
 	viper.BindPFlag("use_private_database", recordCmd.PersistentFlags().Lookup("private"))
 
-	recordImportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "upload assets")
+	recordImportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "upload assets")
 	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
-	recordImportCmd.Flags().BoolVar(&promptComplexValue, "prompt-complex", true, "prompt when complex value is used")
+	recordImportCmd.Flags().BoolVarP(&noWarnComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings.")
 
-	recordExportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
+	recordExportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
 	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
 	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "path to save the output to. If not specified, output is printed to stdout.")
-	recordGetCmd.Flags().BoolVarP(&handleAsset, "asset", "a", false, "If value to the key is an asset, download the asset and output the content of the asset.")
+	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "If value to the key is an asset, download the asset and output the content of the asset.")
 
 	recordEditCmd.Flags().BoolVarP(&createWhenEdit, "new", "n", false, "do not fetch record from database before editing")
 
-	recordQueryCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
+	recordQueryCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
 	recordQueryCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
 	recordQueryCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordQueryCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
