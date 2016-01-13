@@ -72,6 +72,8 @@ func MakeRecord(data map[string]interface{}) (record *Record, err error) {
 	if !ok {
 		return nil, fmt.Errorf("Record data not in expected format: '_id' is not string.")
 	}
+	// Remove the id from the Data map: it is now stored in RecordID
+	delete(data, "_id")
 
 	record = &Record{
 		RecordID: recordID,
@@ -106,5 +108,20 @@ func (r *Record) UnmarshalJSON(b []byte) error {
 	}
 	r.RecordID = recordID
 	r.Data = jsonMap
+	return nil
+}
+
+// Validate check whether the record format is valid.
+func (r *Record) Validate() error {
+	err := CheckRecordID(r.RecordID)
+	if err != nil {
+		return err
+	}
+
+	for idx, _ := range r.Data {
+		if strings.HasPrefix(idx, "_") {
+			return fmt.Errorf("Cannot set data with reserved key: %s", idx)
+		}
+	}
 	return nil
 }

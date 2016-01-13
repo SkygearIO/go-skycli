@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -61,28 +60,84 @@ var recordCmd = &cobra.Command{
 	Long:  "record is for modifying records in the database, providing Create, Read, Update and Delete functionality.",
 }
 
-func parseJsonFromStream(r io.Reader) ([]*odrecord.Record, error) {
-	var records []*odrecord.Record
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		s := scanner.Text()
+// getRecordList return a generator of all records in the given input stream
+func getRecordList(r io.Reader) chan *odrecord.Record {
+	c := make(chan *odrecord.Record)
 
-		var data map[string]interface{}
-		err := json.Unmarshal([]byte(s), &data)
-		if err != nil {
-			warn(err)
-			continue
+	go func() {
+		defer close(c)
+
+		dec := json.NewDecoder(r)
+		for {
+			var data map[string]interface{}
+			if err := dec.Decode(&data); err == io.EOF {
+				break
+			} else if err != nil {
+				warn(err)
+				break
+			}
+
+			record, err := odrecord.MakeRecord(data)
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			c <- record
 		}
+	}()
 
-		record, err := odrecord.MakeRecord(data)
-		if err != nil {
-			warn(err)
-			continue
-		}
+	return c
+}
 
-		records = append(records, record)
+func getFileMode(path string) (os.FileMode, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
 	}
-	return records, nil
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+
+	return info.Mode(), nil
+}
+
+// getImportPathList return a generator of all json file in the given path
+func getImportPathList(rootPath string) chan string {
+	c := make(chan string)
+
+	go func() {
+		defer close(c)
+
+		filemode, err := getFileMode(rootPath)
+		if err != nil {
+			warn(err)
+			return
+		}
+
+		if filemode.IsDir() {
+			// Directory
+			filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+				matched, err := filepath.Match("*.json", info.Name())
+				if err != nil {
+					warn(err)
+					return nil
+				}
+				if matched {
+					c <- path
+				}
+				return nil
+			})
+		} else if filemode.IsRegular() {
+			// Single File
+			c <- rootPath
+		}
+	}()
+
+	return c
 }
 
 var (
@@ -92,16 +147,25 @@ var (
 	validString    = regexp.MustCompile("^@str:")
 )
 
-func handleAsset(db *odcontainer.Database, record *odrecord.Record) error {
+// upload or skip those assets in a record
+func uploadAssets(db *odcontainer.Database, record *odrecord.Record, recordDir string) error {
 	for idx, val := range record.Data {
-		valStr := val.(string)
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+
 		if validAssetFile.MatchString(valStr) {
 			if skipAsset {
 				delete(record.Data, idx)
 			} else {
 				path := validAssetFile.ReplaceAllString(valStr, "")
-				if !filepath.IsAbs(path) && assetBaseDirectory != "" {
-					path = assetBaseDirectory + "/" + path
+				if !filepath.IsAbs(path) {
+					if assetBaseDirectory != "" {
+						path = assetBaseDirectory + "/" + path
+					} else if recordDir != "" {
+						path = recordDir + "/" + path
+					}
 				}
 				assetID, err := db.SaveAsset(path)
 				if err != nil {
@@ -114,6 +178,7 @@ func handleAsset(db *odcontainer.Database, record *odrecord.Record) error {
 	return nil
 }
 
+// Show prompt about coverting complex value
 func complexValueConfirmation(target string) (bool, error) {
 	if noWarnComplexValue {
 		return true, nil
@@ -140,10 +205,15 @@ func complexValueConfirmation(target string) (bool, error) {
 	}
 }
 
+// Convert those fields with complex value to the cooresponding structure
 // TODO: Create class for each complex val so that we can easily add new complex type
 func convertComplexValue(record *odrecord.Record) error {
 	for idx, val := range record.Data {
-		valStr := val.(string)
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+
 		if validLocation.MatchString(valStr) {
 			convert, err := complexValueConfirmation(valStr)
 			if err != nil {
@@ -209,92 +279,61 @@ func convertComplexValue(record *odrecord.Record) error {
 	return nil
 }
 
+func importRecord(db *odcontainer.Database, record *odrecord.Record, recordDir string) error {
+	err := uploadAssets(db, record, recordDir)
+	if err != nil {
+		return err
+	}
+
+	err = convertComplexValue(record)
+	if err != nil {
+		return err
+	}
+
+	err = db.SaveRecord(record)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 var recordImportCmd = &cobra.Command{
 	Use:   "import [<path> ...]",
 	Short: "Import records to database",
 	Run: func(cmd *cobra.Command, args []string) {
 		db := newDatabase()
 
-		var records []*odrecord.Record
 		// Stdin
 		if len(args) == 0 {
-			record, err := parseJsonFromStream(os.Stdin)
-			if err != nil {
-				fatal(err)
+			for r := range getRecordList(os.Stdin) {
+				err := importRecord(db, r, "")
+				if err != nil {
+					warn(err)
+					continue
+				}
 			}
-			records = append(records, record...)
 		} else {
-			for _, filename := range args {
-				f, err := os.Open(filename)
-				if err != nil {
-					warn(err)
-					continue
-				}
-				defer f.Close()
-
-				info, err := f.Stat()
-				if err != nil {
-					warn(err)
-					continue
-				}
-				switch mode := info.Mode(); {
-				case mode.IsDir():
-					// Directory
-					filepath.Walk(filename, func(path string, info os.FileInfo, err error) error {
-						matched, err := filepath.Match("*.json", info.Name())
-						if err != nil {
-							warn(err)
-							return nil
-						}
-						if matched {
-							f, err := os.Open(path)
-							if err != nil {
-								warn(err)
-								return nil
-							}
-							defer f.Close()
-
-							record, err := parseJsonFromStream(f)
-							if err != nil {
-								warn(err)
-								return nil
-							}
-							records = append(records, record...)
-						}
-						return nil
-					})
-				case mode.IsRegular():
-					// Single File
-					record, err := parseJsonFromStream(f)
+			for _, path := range args {
+				for filename := range getImportPathList(path) {
+					f, err := os.Open(filename)
 					if err != nil {
 						warn(err)
 						continue
 					}
-					records = append(records, record...)
+					recordPath := filepath.Dir(filename)
+
+					for r := range getRecordList(f) {
+						err := importRecord(db, r, recordPath)
+						if err != nil {
+							warn(err)
+							continue
+						}
+					}
 				}
 			}
 		}
 
-		// Import
-		for _, record := range records {
-			err := handleAsset(db, record)
-			if err != nil {
-				warn(err)
-				continue
-			}
-
-			err = convertComplexValue(record)
-			if err != nil {
-				warn(err)
-				continue
-			}
-
-			err = db.SaveRecord(record)
-			if err != nil {
-				warn(err)
-				continue
-			}
-		}
 		fmt.Println("Import DONE")
 	},
 }
