@@ -10,7 +10,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	skycontainer "github.com/oursky/skycli/container"
@@ -140,12 +139,7 @@ func getImportPathList(rootPath string) <-chan string {
 	return c
 }
 
-var (
-	validAssetFile = regexp.MustCompile("^@file:")
-	validLocation  = regexp.MustCompile("^@loc:")
-	validReference = regexp.MustCompile("^@ref:")
-	validString    = regexp.MustCompile("^@str:")
-)
+var validAssetFile = regexp.MustCompile("^@file:")
 
 // upload or skip those assets in a record
 func uploadAssets(db *skycontainer.Database, record *skyrecord.Record, recordDir string) error {
@@ -206,7 +200,6 @@ func complexValueConfirmation(target string) (bool, error) {
 }
 
 // Convert those fields with complex value to the cooresponding structure
-// TODO: Create class for each complex val so that we can easily add new complex type
 func convertComplexValue(record *skyrecord.Record) error {
 	for idx, val := range record.Data {
 		valStr, ok := val.(string)
@@ -214,66 +207,22 @@ func convertComplexValue(record *skyrecord.Record) error {
 			continue
 		}
 
-		if validLocation.MatchString(valStr) {
-			convert, err := complexValueConfirmation(valStr)
-			if err != nil {
-				return err
-			}
-			if !convert {
-				continue
-			}
-
-			str := validLocation.ReplaceAllString(valStr, "")
-			resultStr := strings.Split(str, ",")
-			if len(resultStr) != 2 {
-				return fmt.Errorf("Wrong format of complex value(location).")
-			}
-			var resultVal []float64
-			for _, x := range resultStr {
-				rx, err := strconv.ParseFloat(x, 64)
+		for _, complexType := range ComplexTypeList {
+			if complexType.Validate(valStr) {
+				convert, err := complexValueConfirmation(valStr)
 				if err != nil {
 					return err
 				}
-				resultVal = append(resultVal, rx)
-			}
-			loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
-			locJson, err := json.Marshal(loc)
-			if err != nil {
-				return err
-			}
-			record.Data[idx] = string(locJson)
-		} else if validReference.MatchString(valStr) {
-			convert, err := complexValueConfirmation(valStr)
-			if err != nil {
-				return err
-			}
-			if !convert {
-				continue
-			}
+				if !convert {
+					continue
+				}
 
-			str := validReference.ReplaceAllString(valStr, "")
-			ref := map[string]interface{}{"$type": "ref", "$id": str}
-			refStr, err := json.Marshal(ref)
-			if err != nil {
-				return err
+				result, err := complexType.Convert(valStr)
+				if err != nil {
+					return err
+				}
+				record.Data[idx] = result
 			}
-			record.Data[idx] = string(refStr)
-		} else if validString.MatchString(valStr) {
-			convert, err := complexValueConfirmation(valStr)
-			if err != nil {
-				return err
-			}
-			if !convert {
-				continue
-			}
-
-			str := validString.ReplaceAllString(valStr, "")
-			strMap := map[string]interface{}{"$type": "str", "$str": str}
-			strStr, err := json.Marshal(strMap)
-			if err != nil {
-				return err
-			}
-			record.Data[idx] = string(strStr)
 		}
 	}
 	return nil
@@ -605,7 +554,7 @@ func init() {
 
 	recordImportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "upload assets")
 	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
-	recordImportCmd.Flags().BoolVarP(&promptComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings.")
+	recordImportCmd.Flags().BoolVarP(&promptComplexValue, "no-warn-complex", "i", true, "Ignore complex values conversion warnings.")
 
 	recordExportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
 	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
