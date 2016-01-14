@@ -1,0 +1,34 @@
+language: go
+
+sudo: false
+
+go:
+  - 1.5
+  - 1.6beta1
+
+cache:
+  directories:
+    - $HOME/.cache
+    - Godeps/_workspace
+
+before_install:
+
+before_script:
+  - >
+    go get golang.org/x/tools/cmd/stringer \
+           golang.org/x/tools/cmd/cover \
+           github.com/golang/lint/golint \
+           github.com/smartystreets/goconvey/convey \
+           github.com/smartystreets/assertions \
+           github.com/rickmak/gocyclo \
+           github.com/oursky/gogocyclo
+  - go get github.com/inconshreveable/mousetrap # godep does not include this
+
+script:
+  - golint ./... | grep -v -f .golint.exclude; test $? -eq 1
+  - go generate ./...
+  - gocyclo -skip-godeps -over 15 . | gogocyclo
+  - go test -cover ./...
+
+notifications:
+  slack: oursky:PxqsclRADehuWEs51vpgxeUh

@@ -1,0 +1,3 @@
+/tmp
+# go generated sources
+*_string.go
