@@ -109,12 +109,12 @@ func (c *Container) MakeAssetRequest(method, filename, contentType string, body 
 	return &SkygearResponse{Payload: jsonData}, nil
 }
 
-// PrivateDatabase returns ID of the public database
+// PublicDatabaseID returns ID of the public database
 func (c *Container) PublicDatabaseID() string {
 	return "_public"
 }
 
-// PrivateDatabase returns ID of the current user's private database
+// PrivateDatabaseID returns ID of the current user's private database
 func (c *Container) PrivateDatabaseID() string {
 	return "_private"
 }

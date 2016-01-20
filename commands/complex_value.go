@@ -8,29 +8,30 @@ import (
 	"strings"
 )
 
-var ComplexTypeList []ComplexType
+// ComplexTypeList provide the list of available complex type
+var ComplexTypeList []complexType
 
-type ComplexType interface {
+type complexType interface {
 	Validate(string) bool
 	Convert(string) (string, error)
 }
 
 // Location
-type ComplexLocation struct {
+type complexLocation struct {
 	validRegexp *regexp.Regexp
 }
 
-func NewComplexLocation() *ComplexLocation {
-	return &ComplexLocation{
+func newComplexLocation() *complexLocation {
+	return &complexLocation{
 		validRegexp: regexp.MustCompile("^@loc:"),
 	}
 }
 
-func (s *ComplexLocation) Validate(valStr string) bool {
+func (s *complexLocation) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *ComplexLocation) Convert(valStr string) (string, error) {
+func (s *complexLocation) Convert(valStr string) (string, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 	resultStr := strings.Split(str, ",")
 	if len(resultStr) != 2 {
@@ -47,30 +48,30 @@ func (s *ComplexLocation) Convert(valStr string) (string, error) {
 	}
 
 	loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
-	locJson, err := json.Marshal(loc)
+	locJSON, err := json.Marshal(loc)
 	if err != nil {
 		return "", err
 	}
 
-	return string(locJson), nil
+	return string(locJSON), nil
 }
 
 // Reference
-type ComplexReference struct {
+type complexReference struct {
 	validRegexp *regexp.Regexp
 }
 
-func NewComplexReference() *ComplexReference {
-	return &ComplexReference{
+func newComplexReference() *complexReference {
+	return &complexReference{
 		validRegexp: regexp.MustCompile("^@ref:"),
 	}
 }
 
-func (s *ComplexReference) Validate(valStr string) bool {
+func (s *complexReference) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *ComplexReference) Convert(valStr string) (string, error) {
+func (s *complexReference) Convert(valStr string) (string, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	ref := map[string]interface{}{"$type": "ref", "$id": str}
@@ -82,21 +83,21 @@ func (s *ComplexReference) Convert(valStr string) (string, error) {
 }
 
 // String
-type ComplexString struct {
+type complexString struct {
 	validRegexp *regexp.Regexp
 }
 
-func NewComplexString() *ComplexString {
-	return &ComplexString{
+func newComplexString() *complexString {
+	return &complexString{
 		validRegexp: regexp.MustCompile("^@str:"),
 	}
 }
 
-func (s *ComplexString) Validate(valStr string) bool {
+func (s *complexString) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *ComplexString) Convert(valStr string) (string, error) {
+func (s *complexString) Convert(valStr string) (string, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	strMap := map[string]interface{}{"$type": "str", "$str": str}
@@ -108,7 +109,7 @@ func (s *ComplexString) Convert(valStr string) (string, error) {
 }
 
 func init() {
-	ComplexTypeList = append(ComplexTypeList, NewComplexLocation())
-	ComplexTypeList = append(ComplexTypeList, NewComplexReference())
-	ComplexTypeList = append(ComplexTypeList, NewComplexString())
+	ComplexTypeList = append(ComplexTypeList, newComplexLocation())
+	ComplexTypeList = append(ComplexTypeList, newComplexReference())
+	ComplexTypeList = append(ComplexTypeList, newComplexString())
 }

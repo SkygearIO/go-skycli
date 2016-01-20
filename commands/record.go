@@ -30,9 +30,8 @@ var recordUsePrivateDatabase bool
 func usingDatabaseID(c *skycontainer.Container) string {
 	if recordUsePrivateDatabase {
 		return c.PrivateDatabaseID()
-	} else {
-		return c.PublicDatabaseID()
 	}
+	return c.PublicDatabaseID()
 }
 
 func newDatabase() *skycontainer.Database {
@@ -338,7 +337,7 @@ var recordDeleteCmd = &cobra.Command{
 			fatal(fmt.Errorf("Unexpected server data."))
 		}
 
-		for i, _ := range resultArray {
+		for i := range resultArray {
 			resultData, ok := resultArray[i].(map[string]interface{})
 			if !ok {
 				warn(fmt.Errorf("Encountered unexpected server data."))
@@ -531,7 +530,7 @@ var recordQueryCmd = &cobra.Command{
 			fatal(fmt.Errorf("Unexpected server data."))
 		}
 
-		for i, _ := range resultArray {
+		for i := range resultArray {
 			resultData, ok := resultArray[i].(map[string]interface{})
 			if !ok {
 				warn(fmt.Errorf("Encountered unexpected server data."))

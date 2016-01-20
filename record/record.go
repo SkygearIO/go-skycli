@@ -118,7 +118,7 @@ func (r *Record) Validate() error {
 		return err
 	}
 
-	for idx, _ := range r.Data {
+	for idx := range r.Data {
 		if strings.HasPrefix(idx, "_") {
 			return fmt.Errorf("Cannot set data with reserved key: %s", idx)
 		}
