@@ -7,15 +7,21 @@ import (
 	"os"
 	"path/filepath"
 
-	odrecord "github.com/oursky/skycli/record"
+	skyrecord "github.com/oursky/skycli/record"
 )
+
+type SkyDB interface {
+	FetchRecord(string) (*skyrecord.Record, error)
+	SaveRecord(*skyrecord.Record) error
+	SaveAsset(string) (string, error)
+}
 
 type Database struct {
 	Container  *Container
 	DatabaseID string
 }
 
-func (d *Database) FetchRecord(recordID string) (record *odrecord.Record, err error) {
+func (d *Database) FetchRecord(recordID string) (record *skyrecord.Record, err error) {
 	request := GenericRequest{}
 	request.Payload = map[string]interface{}{
 		"database_id": d.DatabaseID,
@@ -51,15 +57,15 @@ func (d *Database) FetchRecord(recordID string) (record *odrecord.Record, err er
 		return
 	}
 
-	record, err = odrecord.MakeRecord(resultData)
+	record, err = skyrecord.MakeRecord(resultData)
 	return
 }
 
-func (d *Database) SaveRecord(record *odrecord.Record) (err error) {
+func (d *Database) SaveRecord(record *skyrecord.Record) (err error) {
 	request := GenericRequest{}
 	request.Payload = map[string]interface{}{
 		"database_id": d.DatabaseID,
-		"records":     []odrecord.Record{*record},
+		"records":     []skyrecord.Record{*record},
 	}
 
 	response, err := d.Container.MakeRequest("record:save", &request)

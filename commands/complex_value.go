@@ -72,6 +72,10 @@ func (s *complexReference) Validate(valStr string) bool {
 }
 
 func (s *complexReference) Convert(valStr string) (string, error) {
+	if s.Validate(valStr) == false {
+		return "", fmt.Errorf("Unexpected complex reference")
+	}
+
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	ref := map[string]interface{}{"$type": "ref", "$id": str}
@@ -98,6 +102,10 @@ func (s *complexString) Validate(valStr string) bool {
 }
 
 func (s *complexString) Convert(valStr string) (string, error) {
+	if s.Validate(valStr) == false {
+		return "", fmt.Errorf("Unexpected complex string")
+	}
+
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	strMap := map[string]interface{}{"$type": "str", "$str": str}

@@ -141,7 +141,7 @@ func getImportPathList(rootPath string) <-chan string {
 var validAssetFile = regexp.MustCompile("^@file:")
 
 // upload or skip those assets in a record
-func uploadAssets(db *skycontainer.Database, record *skyrecord.Record, recordDir string) error {
+func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
 	for idx, val := range record.Data {
 		valStr, ok := val.(string)
 		if !ok {
@@ -227,7 +227,7 @@ func convertComplexValue(record *skyrecord.Record) error {
 	return nil
 }
 
-func importRecord(db *skycontainer.Database, record *skyrecord.Record, recordDir string) error {
+func importRecord(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
 	err := uploadAssets(db, record, recordDir)
 	if err != nil {
 		return err
