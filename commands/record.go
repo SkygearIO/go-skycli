@@ -138,7 +138,10 @@ func getImportPathList(rootPath string) <-chan string {
 	return c
 }
 
-var validAssetFile = regexp.MustCompile("^@file:")
+var (
+	uploadAssetRegexp   = regexp.MustCompile("^@file:")
+	downloadAssetRegexp = regexp.MustCompile("^@asset:")
+)
 
 // upload or skip those assets in a record
 func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
@@ -148,11 +151,11 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 			continue
 		}
 
-		if validAssetFile.MatchString(valStr) {
+		if uploadAssetRegexp.MatchString(valStr) {
 			if skipAsset {
 				delete(record.Data, idx)
 			} else {
-				path := validAssetFile.ReplaceAllString(valStr, "")
+				path := uploadAssetRegexp.ReplaceAllString(valStr, "")
 				if !filepath.IsAbs(path) {
 					if assetBaseDirectory != "" {
 						path = assetBaseDirectory + "/" + path
@@ -166,6 +169,43 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 				}
 				record.Data[idx] = "@asset:" + assetID
 			}
+		}
+	}
+	return nil
+}
+
+// download or skip those assets in a record
+func downloadAssets(db skycontainer.SkyDB, record *skyrecord.Record) error {
+	for idx, val := range record.Data {
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+
+		if downloadAssetRegexp.MatchString(valStr) {
+			assetID := downloadAssetRegexp.ReplaceAllString(valStr, "")
+			assetData, err := db.FetchAsset(assetID)
+			if err != nil {
+				return err
+			}
+
+			var assetPath string
+			if assetBaseDirectory == "" {
+				assetPath = assetID
+			} else {
+				err := os.MkdirAll(assetBaseDirectory, 0755)
+				if err != nil {
+					return err
+				}
+				assetPath = assetBaseDirectory + "/" + assetID
+			}
+
+			err = ioutil.WriteFile(assetPath, assetData, 0644)
+			if err != nil {
+				fatal(err)
+			}
+
+			record.Data[idx] = fmt.Sprintf("@file:%s", assetPath)
 		}
 	}
 	return nil
@@ -497,10 +537,7 @@ var recordQueryCmd = &cobra.Command{
 	Use:   "query <record_type>",
 	Short: "Query records from database",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			cmd.Usage()
-			os.Exit(1)
-		}
+		checkMinArgCount(cmd, args, 1)
 
 		recordType := args[0]
 		if strings.Contains(recordType, "/") {
@@ -508,6 +545,7 @@ var recordQueryCmd = &cobra.Command{
 		}
 
 		c := newContainer()
+		db := newDatabase()
 
 		request := skycontainer.GenericRequest{}
 		request.Payload = map[string]interface{}{
@@ -542,7 +580,41 @@ var recordQueryCmd = &cobra.Command{
 				continue
 			}
 
-			printValue(resultData)
+			record, err := skyrecord.MakeRecord(resultData)
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			if !skipAsset {
+				err = downloadAssets(db, record)
+				if err != nil {
+					warn(err)
+					continue
+				}
+			}
+
+			var resultJSON []byte
+			if prettyPrint {
+				resultJSON, err = json.MarshalIndent(resultData, "", "    ")
+			} else {
+				resultJSON, err = json.Marshal(resultData)
+			}
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			if recordOutputPath == "" {
+				fmt.Println(string(resultJSON))
+			} else {
+				err := ioutil.WriteFile(recordOutputPath, resultJSON, 0644)
+				if err != nil {
+					warn(err)
+					continue
+				}
+			}
+
 		}
 	},
 }

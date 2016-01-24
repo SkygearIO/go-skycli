@@ -20,6 +20,10 @@ func (d *FakeDatabase) SaveRecord(r *skyrecord.Record) error {
 	return nil
 }
 
+func (d *FakeDatabase) FetchRecord(r *skyrecord.Record) error {
+	return nil
+}
+
 func (d *FakeDatabase) SaveAsset(path string) (assetID string, err error) {
 	if path == "err" {
 		return "", fmt.Errorf("Something wrong")

@@ -13,6 +13,7 @@ import (
 type SkyDB interface {
 	FetchRecord(string) (*skyrecord.Record, error)
 	SaveRecord(*skyrecord.Record) error
+	FetchAsset(string) ([]byte, error)
 	SaveAsset(string) (string, error)
 }
 
@@ -97,6 +98,16 @@ func (d *Database) SaveRecord(record *skyrecord.Record) (err error) {
 		return
 	}
 	return
+}
+
+func (d *Database) FetchAsset(assetID string) (assetData []byte, err error) {
+	response, err := d.Container.GetAssetRequest(assetID)
+	//fmt.Printf("%+v\n", string(response))
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (d *Database) SaveAsset(path string) (assetID string, err error) {

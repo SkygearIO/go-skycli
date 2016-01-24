@@ -7,6 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
+
+	"fmt"
 )
 
 const actionPartSeparator = ":"
@@ -71,7 +74,8 @@ func (c *Container) MakeRequest(action string, request SkygearRequest) (response
 }
 
 func (c *Container) createAssetRequest(method, filename, contentType string, body io.Reader) *http.Request {
-	url := c.Endpoint + "/files/" + filename
+	expiredAt := time.Now().Add(time.Minute).UTC().Unix()
+	url := c.Endpoint + "/files/" + filename + "?expiredAt=" + fmt.Sprintf("%d", expiredAt)
 
 	req, _ := http.NewRequest(method, url, body)
 	req.Header.Set("X-Skygear-API-Key", c.APIKey)
@@ -107,6 +111,28 @@ func (c *Container) MakeAssetRequest(method, filename, contentType string, body 
 	}
 
 	return &SkygearResponse{Payload: jsonData}, nil
+}
+
+func (c *Container) GetAssetRequest(assetID string) (response []byte, err error) {
+	req := c.createAssetRequest("GET", assetID, "", nil)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Unexpected status code.")
+	}
+
+	dataFromHTTP, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	return dataFromHTTP, nil
 }
 
 // PublicDatabaseID returns ID of the public database
