@@ -26,45 +26,72 @@ func (c *Container) actionURL(action string) string {
 	return c.Endpoint + "/" + strings.Replace(action, actionPartSeparator, requestPartSeparator, -1)
 }
 
-func (c *Container) createRequest(action string, payload map[string]interface{}) *http.Request {
+func (c *Container) createRequest(method, url, contentType string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
 
-	url := c.actionURL(action)
-	//fmt.Printf("making request for: %v\n", url)
+	if c.APIKey != "" {
+		req.Header.Set("X-Skygear-API-Key", c.APIKey)
+	}
+	if c.AccessToken != "" {
+		req.Header.Set("X-Skygear-Access-Token", c.AccessToken)
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+
+	return req, nil
+}
+
+func (c *Container) fixRequestPayload(action string, payload map[string]interface{}) {
 	if c.AccessToken != "" {
 		payload["access_token"] = c.AccessToken
 	}
 	if action != "" {
 		payload["action"] = action
 	}
-	var jsonStr, _ = json.Marshal(payload)
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
-	req.Header.Set("X-Skygear-API-Key", c.APIKey)
-	if c.AccessToken != "" {
-		req.Header.Set("X-Skygear-Access-Token", c.AccessToken)
-	}
-	return req
 }
 
-// MakeRequest sends request to Skygear
-func (c *Container) MakeRequest(action string, request SkygearRequest) (response *SkygearResponse, err error) {
-
-	req := c.createRequest(action, request.MakePayload())
+func getBytesResponse(req *http.Request) ([]byte, error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	jsonDataFromHTTP, err := ioutil.ReadAll(resp.Body)
-
 	if err != nil {
-		return
+		return nil, err
+	}
+	return jsonDataFromHTTP, nil
+}
+
+// MakeRequest sends request to Skygear
+func (c *Container) MakeRequest(action string, request SkygearRequest) (response *SkygearResponse, err error) {
+	url := c.actionURL(action)
+	payload := request.MakePayload()
+	c.fixRequestPayload(action, payload)
+
+	jsonStr, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := c.createRequest("POST", url, "", bytes.NewBuffer(jsonStr))
+	if err != nil {
+		return nil, err
+	}
+
+	jsonDataFromHTTP, err := getBytesResponse(req)
+	if err != nil {
+		return nil, err
 	}
 
 	var jsonData map[string]interface{}
-	err = json.Unmarshal([]byte(jsonDataFromHTTP), &jsonData)
-
+	err = json.Unmarshal(jsonDataFromHTTP, &jsonData)
 	if err != nil {
 		return
 	}
@@ -73,53 +100,45 @@ func (c *Container) MakeRequest(action string, request SkygearRequest) (response
 
 }
 
-func (c *Container) createAssetRequest(method, filename, contentType string, body io.Reader) *http.Request {
+func (c *Container) assetURL(filename string) string {
 	expiredAt := time.Now().Add(time.Minute).UTC().Unix()
 	url := c.Endpoint + "/files/" + filename + "?expiredAt=" + fmt.Sprintf("%d", expiredAt)
-
-	req, _ := http.NewRequest(method, url, body)
-	req.Header.Set("X-Skygear-API-Key", c.APIKey)
-	req.Header.Set("Content-Type", contentType)
-	if c.AccessToken != "" {
-		req.Header.Set("X-Skygear-Access-Token", c.AccessToken)
-	}
-	return req
+	return url
 }
 
 // MakeAssetRequest sends asset request to Skygear
-func (c *Container) MakeAssetRequest(method, filename, contentType string, body io.Reader) (response *SkygearResponse, err error) {
-	req := c.createAssetRequest(method, filename, contentType, body)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
+func (c *Container) PutAssetRequest(filename, contentType string, body io.Reader) (response *SkygearResponse, err error) {
+	url := c.assetURL(filename)
+	req, err := c.createRequest("PUT", url, contentType, body)
 	if err != nil {
-		return
+		return nil, err
 	}
-	defer resp.Body.Close()
 
-	jsonDataFromHTTP, err := ioutil.ReadAll(resp.Body)
-
+	jsonDataFromHTTP, err := getBytesResponse(req)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	var jsonData map[string]interface{}
-	err = json.Unmarshal([]byte(jsonDataFromHTTP), &jsonData)
-
+	err = json.Unmarshal(jsonDataFromHTTP, &jsonData)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	return &SkygearResponse{Payload: jsonData}, nil
 }
 
 func (c *Container) GetAssetRequest(assetID string) (response []byte, err error) {
-	req := c.createAssetRequest("GET", assetID, "", nil)
+	url := c.assetURL(assetID)
+	req, err := c.createRequest("GET", url, "", nil)
+	if err != nil {
+		return nil, err
+	}
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return
+		return nil, err
 	}
 	defer resp.Body.Close()
 
@@ -129,7 +148,7 @@ func (c *Container) GetAssetRequest(assetID string) (response []byte, err error)
 
 	dataFromHTTP, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	return dataFromHTTP, nil

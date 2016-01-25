@@ -20,7 +20,7 @@ func (d *FakeDatabase) SaveRecord(r *skyrecord.Record) error {
 	return nil
 }
 
-func (d *FakeDatabase) FetchRecord(r *skyrecord.Record) error {
+func (d *FakeDatabase) FetchAsset(r *skyrecord.Record) error {
 	return nil
 }
 
