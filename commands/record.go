@@ -330,11 +330,45 @@ var recordExportCmd = &cobra.Command{
 	Use:   "export <record_id> [<record_id> ...]",
 	Short: "Export records from database",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			cmd.Usage()
-			os.Exit(1)
+		checkMinArgCount(cmd, args, 1)
+
+		for _, recordID := range args {
+			db := newDatabase()
+			record, err := db.FetchRecord(recordID)
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			if !skipAsset {
+				err = downloadAssets(db, record)
+				if err != nil {
+					warn(err)
+					continue
+				}
+			}
+
+			var resultJSON []byte
+			if prettyPrint {
+				resultJSON, err = json.MarshalIndent(record, "", "    ")
+			} else {
+				resultJSON, err = json.Marshal(record)
+			}
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			if recordOutputPath == "" {
+				fmt.Println(string(resultJSON))
+			} else {
+				err := ioutil.WriteFile(recordOutputPath, resultJSON, 0644)
+				if err != nil {
+					warn(err)
+					continue
+				}
+			}
 		}
-		fmt.Println("not implemented")
 	},
 }
 
@@ -631,6 +665,7 @@ func init() {
 	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
 	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
+
 	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "path to save the output to. If not specified, output is printed to stdout.")
 	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "If value to the key is an asset, download the asset and output the content of the asset.")
 
