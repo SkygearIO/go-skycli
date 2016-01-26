@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
@@ -29,12 +28,16 @@ func TestLocationConvert(t *testing.T) {
 
 		Convey("gets an simpler form location", func() {
 			input := "@loc:3,4"
-			expectedJSON, _ := json.Marshal(map[string]interface{}{"$type": "geo", "$lat": 3, "$lng": 4})
-			expectedStr := string(expectedJSON)
+			expectedMap := map[string]interface{}{
+				"$type": "geo",
+				"$lat":  3.0,
+				"$lng":  4.0,
+			}
 
 			output, err := loc.Convert(input)
 			So(err, ShouldBeNil)
-			So(output, ShouldEqual, expectedStr)
+			outMap := output.(map[string]interface{})
+			So(outMap, ShouldResemble, expectedMap)
 		})
 
 		Convey("gets an random string", func() {
@@ -68,12 +71,14 @@ func TestReferenceConvert(t *testing.T) {
 
 		Convey("gets an simpler form reference", func() {
 			input := "@ref:4321"
-			expectedJSON, _ := json.Marshal(map[string]interface{}{"$type": "ref", "$id": "4321"})
-			expectedStr := string(expectedJSON)
+			expectedMap := map[string]interface{}{
+				"$type": "ref",
+				"$id":   "4321",
+			}
 
 			output, err := ref.Convert(input)
 			So(err, ShouldBeNil)
-			So(output, ShouldEqual, expectedStr)
+			So(output, ShouldResemble, expectedMap)
 		})
 
 		Convey("gets an random string", func() {
@@ -107,12 +112,14 @@ func TestStringConvert(t *testing.T) {
 
 		Convey("gets an simpler form string", func() {
 			input := "@str:somestring"
-			expectedJSON, _ := json.Marshal(map[string]interface{}{"$type": "str", "$str": "somestring"})
-			expectedStr := string(expectedJSON)
+			expectedMap := map[string]interface{}{
+				"$type": "str",
+				"$str":  "somestring",
+			}
 
 			output, err := str.Convert(input)
 			So(err, ShouldBeNil)
-			So(output, ShouldEqual, expectedStr)
+			So(output, ShouldResemble, expectedMap)
 		})
 
 		Convey("gets an random string", func() {

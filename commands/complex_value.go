@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -13,7 +12,7 @@ var ComplexTypeList []complexType
 
 type complexType interface {
 	Validate(string) bool
-	Convert(string) (string, error)
+	Convert(string) (interface{}, error)
 }
 
 // Location
@@ -31,7 +30,7 @@ func (s *complexLocation) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *complexLocation) Convert(valStr string) (string, error) {
+func (s *complexLocation) Convert(valStr string) (interface{}, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 	resultStr := strings.Split(str, ",")
 	if len(resultStr) != 2 {
@@ -47,13 +46,12 @@ func (s *complexLocation) Convert(valStr string) (string, error) {
 		resultVal = append(resultVal, rx)
 	}
 
-	loc := map[string]interface{}{"$type": "geo", "$lat": resultVal[0], "$lng": resultVal[1]}
-	locJSON, err := json.Marshal(loc)
-	if err != nil {
-		return "", err
+	loc := map[string]interface{}{
+		"$type": "geo",
+		"$lat":  resultVal[0],
+		"$lng":  resultVal[1],
 	}
-
-	return string(locJSON), nil
+	return loc, nil
 }
 
 // Reference
@@ -71,7 +69,7 @@ func (s *complexReference) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *complexReference) Convert(valStr string) (string, error) {
+func (s *complexReference) Convert(valStr string) (interface{}, error) {
 	if s.Validate(valStr) == false {
 		return "", fmt.Errorf("Unexpected complex reference")
 	}
@@ -79,11 +77,7 @@ func (s *complexReference) Convert(valStr string) (string, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	ref := map[string]interface{}{"$type": "ref", "$id": str}
-	refStr, err := json.Marshal(ref)
-	if err != nil {
-		return "", err
-	}
-	return string(refStr), nil
+	return ref, nil
 }
 
 // String
@@ -101,7 +95,7 @@ func (s *complexString) Validate(valStr string) bool {
 	return s.validRegexp.MatchString(valStr)
 }
 
-func (s *complexString) Convert(valStr string) (string, error) {
+func (s *complexString) Convert(valStr string) (interface{}, error) {
 	if s.Validate(valStr) == false {
 		return "", fmt.Errorf("Unexpected complex string")
 	}
@@ -109,11 +103,7 @@ func (s *complexString) Convert(valStr string) (string, error) {
 	str := s.validRegexp.ReplaceAllString(valStr, "")
 
 	strMap := map[string]interface{}{"$type": "str", "$str": str}
-	strStr, err := json.Marshal(strMap)
-	if err != nil {
-		return "", err
-	}
-	return string(strStr), nil
+	return strMap, nil
 }
 
 func init() {

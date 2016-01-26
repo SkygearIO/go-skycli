@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"encoding/json"
 	"testing"
 
 	fake "github.com/oursky/skycli/container/fakecontainer"
@@ -20,12 +19,7 @@ func TestConvertComplexValue(t *testing.T) {
 
 		err := convertComplexValue(record)
 		So(err, ShouldBeNil)
-
-		var resultData map[string]interface{}
-		err = json.Unmarshal([]byte(record.Data["loc"].(string)), &resultData)
-
-		So(err, ShouldBeNil)
-		So(resultData, ShouldResemble, expectedData)
+		So(record.Data["loc"], ShouldResemble, expectedData)
 	})
 
 	Convey("Convert Reference", t, func() {
@@ -36,12 +30,7 @@ func TestConvertComplexValue(t *testing.T) {
 
 		err := convertComplexValue(record)
 		So(err, ShouldBeNil)
-
-		var resultData map[string]interface{}
-		err = json.Unmarshal([]byte(record.Data["ref"].(string)), &resultData)
-
-		So(err, ShouldBeNil)
-		So(resultData, ShouldResemble, expectedData)
+		So(record.Data["ref"], ShouldResemble, expectedData)
 	})
 
 	Convey("Convert String", t, func() {
@@ -52,12 +41,7 @@ func TestConvertComplexValue(t *testing.T) {
 
 		err := convertComplexValue(record)
 		So(err, ShouldBeNil)
-
-		var resultData map[string]interface{}
-		err = json.Unmarshal([]byte(record.Data["str"].(string)), &resultData)
-
-		So(err, ShouldBeNil)
-		So(resultData, ShouldResemble, expectedData)
+		So(record.Data["str"], ShouldResemble, expectedData)
 	})
 
 	Convey("Convert two complex value", t, func() {
@@ -69,15 +53,8 @@ func TestConvertComplexValue(t *testing.T) {
 
 		err := convertComplexValue(record)
 		So(err, ShouldBeNil)
-
-		var resultLoc, resultRef map[string]interface{}
-		err = json.Unmarshal([]byte(record.Data["loc"].(string)), &resultLoc)
-		So(err, ShouldBeNil)
-		err = json.Unmarshal([]byte(record.Data["ref"].(string)), &resultRef)
-		So(err, ShouldBeNil)
-
-		So(resultLoc, ShouldResemble, expectedLoc)
-		So(resultRef, ShouldResemble, expectedRef)
+		So(record.Data["loc"], ShouldResemble, expectedLoc)
+		So(record.Data["ref"], ShouldResemble, expectedRef)
 	})
 }
 
