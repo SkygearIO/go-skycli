@@ -171,7 +171,7 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 	return nil
 }
 
-// Show prompt about coverting complex value
+// Show prompt about converting complex value
 func complexValueConfirmation(target string) (bool, error) {
 	if !promptComplexValue {
 		return true, nil
@@ -198,7 +198,7 @@ func complexValueConfirmation(target string) (bool, error) {
 	}
 }
 
-// Convert those fields with complex value to the cooresponding structure
+// Convert those fields with complex value to the corresponding structure
 func convertComplexValue(record *skyrecord.Record) error {
 	for idx, val := range record.Data {
 		valStr, ok := val.(string)

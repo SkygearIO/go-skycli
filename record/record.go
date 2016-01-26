@@ -28,7 +28,7 @@ func (r *Record) Get(key string) (value interface{}, err error) {
 }
 
 // Assign is a convenient method for setting value to a key using
-// an experssion syntax.
+// an expression syntax.
 func (r *Record) Assign(expr string) error {
 	pair := strings.SplitN(expr, "=", 2)
 	if len(pair) < 2 || pair[0] == "" || pair[1] == "" {
