@@ -191,7 +191,6 @@ func (d *Database) DeleteRecord(recordIDList []string) error {
 
 func (d *Database) FetchAsset(assetID string) (assetData []byte, err error) {
 	response, err := d.Container.GetAssetRequest(assetID)
-	//fmt.Printf("%+v\n", string(response))
 	if err != nil {
 		return nil, err
 	}

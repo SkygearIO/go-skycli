@@ -303,6 +303,9 @@ func fetchRecord(db skycontainer.SkyDB, recordID string) (*skyrecord.Record, err
 	}
 
 	err = record.PostDownloadHandle()
+	if err != nil {
+		return nil, err
+	}
 
 	if !skipAsset {
 		err = downloadAssets(db, record)

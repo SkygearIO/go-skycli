@@ -15,8 +15,8 @@ func checkMinArgCount(cmd *cobra.Command, args []string, min int) {
 	}
 }
 
-func checkMaxArgCount(cmd *cobra.Command, args []string, min int) {
-	if len(args) > min {
+func checkMaxArgCount(cmd *cobra.Command, args []string, max int) {
+	if len(args) > max {
 		cmd.Usage()
 		os.Exit(1)
 	}

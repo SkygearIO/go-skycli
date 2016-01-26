@@ -106,7 +106,7 @@ func (c *Container) assetURL(filename string) string {
 	return url
 }
 
-// MakeAssetRequest sends asset request to Skygear
+// PutAssetRequest sends asset PUT request to Skygear
 func (c *Container) PutAssetRequest(filename, contentType string, body io.Reader) (response *SkygearResponse, err error) {
 	url := c.assetURL(filename)
 	req, err := c.createRequest("PUT", url, contentType, body)
