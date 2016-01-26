@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/oursky/skycli",
 	"GoVersion": "go1.5.1",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -11,6 +14,10 @@
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
 			"Comment": "v1.0.4",
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
@@ -57,19 +64,20 @@
 		},
 		{
 			"ImportPath": "github.com/spf13/viper",
-			"Rev": "1967d93db724f4a5c0e101307e96d82ff520a067"
+			"Rev": "0c82789feb03da74b3390a5d64b8ce2ce9ba0f3e"
 		},
 		{
 			"ImportPath": "github.com/twinj/uuid",
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
 		},
 		{
-			"ImportPath": "gopkg.in/yaml.v2",
-			"Rev": "7ad95dd0798a40da1ccdff6dff35fd177b5edf40"
+			"ImportPath": "gopkg.in/fsnotify.v1",
+			"Comment": "v1.2.8",
+			"Rev": "508915b7500b6e42a87132e4afeb4729cebc7cbb"
 		},
 		{
-			"ImportPath": "github.com/inconshreveable/mousetrap",
-			"Rev": "76626ae9c91c4f2a10f34cad8ce83ea42c93bb75"
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "7ad95dd0798a40da1ccdff6dff35fd177b5edf40"
 		}
 	]
 }
