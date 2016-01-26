@@ -10,6 +10,7 @@ import (
 	"github.com/twinj/uuid"
 )
 
+// FakeDatabase is a map implementation of Database
 type FakeDatabase struct {
 	RecordList map[string]map[string]*skyrecord.Record
 	AssetList  map[string][]byte
@@ -55,6 +56,7 @@ func (d *FakeDatabase) QueryRecord(recordType string) ([]*skyrecord.Record, erro
 }
 
 func (d *FakeDatabase) SaveRecord(r *skyrecord.Record) error {
+	// Deep clone the record to prevent changing the original one
 	var mod bytes.Buffer
 	gob.Register(map[string]interface{}{})
 	enc := gob.NewEncoder(&mod)

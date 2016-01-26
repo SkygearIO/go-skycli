@@ -21,7 +21,7 @@ import (
 
 var skipAsset bool
 var assetBaseDirectory string
-var promptComplexValue bool
+var forceConvertComplexValue bool
 var prettyPrint bool
 var recordOutputPath string
 var createWhenEdit bool
@@ -174,7 +174,7 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 	return nil
 }
 
-// download or skip those assets in a record
+// download those assets in a record
 func downloadAssets(db skycontainer.SkyDB, record *skyrecord.Record) error {
 	for idx, val := range record.Data {
 		valStr, ok := val.(string)
@@ -213,7 +213,7 @@ func downloadAssets(db skycontainer.SkyDB, record *skyrecord.Record) error {
 
 // Show prompt about converting complex value
 func complexValueConfirmation(target string) (bool, error) {
-	if !promptComplexValue {
+	if forceConvertComplexValue {
 		return true, nil
 	}
 
@@ -267,6 +267,7 @@ func convertComplexValue(record *skyrecord.Record) error {
 	return nil
 }
 
+// saveRecord save record at recordDir to db
 func saveRecord(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
 	err := record.PreUploadValidate()
 	if err != nil {
@@ -291,6 +292,7 @@ func saveRecord(db skycontainer.SkyDB, record *skyrecord.Record, recordDir strin
 	return nil
 }
 
+// fetchRecord get the record with recordID from db
 func fetchRecord(db skycontainer.SkyDB, recordID string) (*skyrecord.Record, error) {
 	err := skyrecord.CheckRecordID(recordID)
 	if err != nil {
@@ -317,6 +319,7 @@ func fetchRecord(db skycontainer.SkyDB, recordID string) (*skyrecord.Record, err
 	return record, nil
 }
 
+// fetchRecord get a record list with recordType from db
 func queryRecord(db skycontainer.SkyDB, recordType string) ([]*skyrecord.Record, error) {
 	recordList, err := db.QueryRecord(recordType)
 	if err != nil {
@@ -338,10 +341,12 @@ func queryRecord(db skycontainer.SkyDB, recordType string) ([]*skyrecord.Record,
 	return recordList, nil
 }
 
+// printRecordList print the record list to outputFile.
+// It would print to stdout if outputFile is not provided.
 func printRecordList(recordList []*skyrecord.Record) (err error) {
 	var outputFile *os.File
 	if recordOutputPath == "" {
-		outputFile = os.Stdin
+		outputFile = os.Stdout
 	} else {
 		outputFile, err = os.OpenFile(recordOutputPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
@@ -632,27 +637,27 @@ func init() {
 	recordCmd.PersistentFlags().BoolVarP(&recordUsePrivateDatabase, "private", "p", false, "Database. Default is Public.")
 	viper.BindPFlag("use_private_database", recordCmd.PersistentFlags().Lookup("private"))
 
-	recordImportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "upload assets")
-	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
-	recordImportCmd.Flags().BoolVarP(&promptComplexValue, "no-warn-complex", "i", true, "Ignore complex values conversion warnings.")
+	recordImportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not upload assets")
+	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for locating asset files to be uploaded")
+	recordImportCmd.Flags().BoolVarP(&forceConvertComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings and convert automatically.")
 
 	recordExportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
-	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
-	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
+	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded")
+	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "Print output in a pretty format")
 	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 
-	recordSetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "upload assets")
-	recordSetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
-	recordSetCmd.Flags().BoolVarP(&promptComplexValue, "no-warn-complex", "i", true, "Ignore complex values conversion warnings.")
+	recordSetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not upload assets")
+	recordSetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for locating files to be uploaded")
+	recordSetCmd.Flags().BoolVarP(&forceConvertComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings and convert automatically.")
 
-	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "path to save the output to. If not specified, output is printed to stdout.")
-	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "If value to the key is an asset, download the asset and output the content of the asset.")
+	recordGetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded.")
+	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not download asset.")
 
-	recordEditCmd.Flags().BoolVarP(&createWhenEdit, "new", "n", false, "do not fetch record from database before editing")
+	recordEditCmd.Flags().BoolVarP(&createWhenEdit, "new", "n", false, "Do not fetch record from database before editing")
 
-	recordQueryCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
-	recordQueryCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
-	recordQueryCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
+	recordQueryCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not download assets")
+	recordQueryCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded")
+	recordQueryCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "Print output in a pretty format")
 	recordQueryCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 
 	recordCmd.AddCommand(recordImportCmd)

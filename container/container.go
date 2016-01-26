@@ -22,10 +22,12 @@ type Container struct {
 	AccessToken string
 }
 
+// actionURL construct the corresponding URL to Skygear
 func (c *Container) actionURL(action string) string {
 	return c.Endpoint + "/" + strings.Replace(action, actionPartSeparator, requestPartSeparator, -1)
 }
 
+// createRequest add the necessary header to request
 func (c *Container) createRequest(method, url, contentType string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -106,7 +108,7 @@ func (c *Container) assetURL(filename string) string {
 	return url
 }
 
-// PutAssetRequest sends asset PUT request to Skygear
+// PutAssetRequest sends asset PUT request to Skygear.
 func (c *Container) PutAssetRequest(filename, contentType string, body io.Reader) (response *SkygearResponse, err error) {
 	url := c.assetURL(filename)
 	req, err := c.createRequest("PUT", url, contentType, body)
@@ -128,6 +130,7 @@ func (c *Container) PutAssetRequest(filename, contentType string, body io.Reader
 	return &SkygearResponse{Payload: jsonData}, nil
 }
 
+// GetAssetRequest sends GET request to Skygear and get the corresponding asset.
 func (c *Container) GetAssetRequest(assetID string) (response []byte, err error) {
 	url := c.assetURL(assetID)
 	req, err := c.createRequest("GET", url, "", nil)

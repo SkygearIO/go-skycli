@@ -11,7 +11,7 @@ import (
 )
 
 func TestConvertComplexValue(t *testing.T) {
-	promptComplexValue = false
+	forceConvertComplexValue = true
 
 	Convey("Convert Location", t, func() {
 		data := map[string]interface{}{"_id": "1234", "loc": "@loc:3.14,2.17"}
