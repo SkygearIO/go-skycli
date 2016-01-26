@@ -9,7 +9,7 @@ import (
 )
 
 func checkMinArgCount(cmd *cobra.Command, args []string, min int) {
-	if len(args) != min {
+	if len(args) < min {
 		cmd.Usage()
 		os.Exit(1)
 	}

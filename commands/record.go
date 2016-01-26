@@ -4,19 +4,22 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strings"
 
-	odcontainer "github.com/oursky/skycli/container"
-	odrecord "github.com/oursky/skycli/record"
+	skycontainer "github.com/oursky/skycli/container"
+	skyrecord "github.com/oursky/skycli/record"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/twinj/uuid"
 )
 
-var handleAsset bool
+var skipAsset bool
 var assetBaseDirectory string
 var promptComplexValue bool
 var prettyPrint bool
@@ -24,23 +27,22 @@ var recordOutputPath string
 var createWhenEdit bool
 var recordUsePrivateDatabase bool
 
-func usingDatabaseID(c *odcontainer.Container) string {
+func usingDatabaseID(c *skycontainer.Container) string {
 	if recordUsePrivateDatabase {
 		return c.PrivateDatabaseID()
-	} else {
-		return c.PublicDatabaseID()
 	}
+	return c.PublicDatabaseID()
 }
 
-func newDatabase() *odcontainer.Database {
+func newDatabase() *skycontainer.Database {
 	c := newContainer()
-	return &odcontainer.Database{
+	return &skycontainer.Database{
 		Container:  c,
 		DatabaseID: usingDatabaseID(c),
 	}
 }
 
-func formatRecordError(err odcontainer.SkygearError) error {
+func formatRecordError(err skycontainer.SkygearError) error {
 	var fmtError error
 	if err.ID != "" {
 		fmtError = fmt.Errorf("Record %s: %s", err.ID, err.Message)
@@ -56,11 +58,231 @@ var recordCmd = &cobra.Command{
 	Long:  "record is for modifying records in the database, providing Create, Read, Update and Delete functionality.",
 }
 
+// getRecordList return a generator of all records in the given input stream
+func getRecordList(r io.Reader) <-chan *skyrecord.Record {
+	c := make(chan *skyrecord.Record)
+
+	go func() {
+		defer close(c)
+
+		dec := json.NewDecoder(r)
+		for {
+			var data map[string]interface{}
+			if err := dec.Decode(&data); err == io.EOF {
+				break
+			} else if err != nil {
+				warn(err)
+				break
+			}
+
+			record, err := skyrecord.MakeRecord(data)
+			if err != nil {
+				warn(err)
+				continue
+			}
+
+			c <- record
+		}
+	}()
+
+	return c
+}
+
+func getFileMode(path string) (os.FileMode, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return 0, err
+	}
+
+	return info.Mode(), nil
+}
+
+// getImportPathList return a generator of all json file in the given path
+func getImportPathList(rootPath string) <-chan string {
+	c := make(chan string)
+
+	go func() {
+		defer close(c)
+
+		filemode, err := getFileMode(rootPath)
+		if err != nil {
+			warn(err)
+			return
+		}
+
+		if filemode.IsDir() {
+			// Directory
+			filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+				matched, err := filepath.Match("*.json", info.Name())
+				if err != nil {
+					warn(err)
+					return nil
+				}
+				if matched {
+					c <- path
+				}
+				return nil
+			})
+		} else if filemode.IsRegular() {
+			// Single File
+			c <- rootPath
+		}
+	}()
+
+	return c
+}
+
+var validAssetFile = regexp.MustCompile("^@file:")
+
+// upload or skip those assets in a record
+func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
+	for idx, val := range record.Data {
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+
+		if validAssetFile.MatchString(valStr) {
+			if skipAsset {
+				delete(record.Data, idx)
+			} else {
+				path := validAssetFile.ReplaceAllString(valStr, "")
+				if !filepath.IsAbs(path) {
+					if assetBaseDirectory != "" {
+						path = assetBaseDirectory + "/" + path
+					} else if recordDir != "" {
+						path = recordDir + "/" + path
+					}
+				}
+				assetID, err := db.SaveAsset(path)
+				if err != nil {
+					return err
+				}
+				record.Data[idx] = "@asset:" + assetID
+			}
+		}
+	}
+	return nil
+}
+
+// Show prompt about converting complex value
+func complexValueConfirmation(target string) (bool, error) {
+	if !promptComplexValue {
+		return true, nil
+	}
+
+	var response string
+	fmt.Printf("Found complex value %s. Convert? (y or n) ", target)
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		return false, err
+	}
+
+	if len(response) == 0 {
+		return false, err
+	}
+
+	if response[0] == 'y' || response[0] == 'Y' {
+		return true, nil
+	} else if response[0] == 'n' || response[0] == 'N' {
+		return false, nil
+	} else {
+		fmt.Println("Unexpected response")
+		return complexValueConfirmation(target)
+	}
+}
+
+// Convert those fields with complex value to the corresponding structure
+func convertComplexValue(record *skyrecord.Record) error {
+	for idx, val := range record.Data {
+		valStr, ok := val.(string)
+		if !ok {
+			continue
+		}
+
+		for _, complexType := range ComplexTypeList {
+			if complexType.Validate(valStr) {
+				convert, err := complexValueConfirmation(valStr)
+				if err != nil {
+					return err
+				}
+				if !convert {
+					continue
+				}
+
+				result, err := complexType.Convert(valStr)
+				if err != nil {
+					return err
+				}
+				record.Data[idx] = result
+			}
+		}
+	}
+	return nil
+}
+
+func importRecord(db skycontainer.SkyDB, record *skyrecord.Record, recordDir string) error {
+	err := uploadAssets(db, record, recordDir)
+	if err != nil {
+		return err
+	}
+
+	err = convertComplexValue(record)
+	if err != nil {
+		return err
+	}
+
+	err = db.SaveRecord(record)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 var recordImportCmd = &cobra.Command{
 	Use:   "import [<path> ...]",
 	Short: "Import records to database",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("not implemented")
+		db := newDatabase()
+
+		// Stdin
+		if len(args) == 0 {
+			for r := range getRecordList(os.Stdin) {
+				err := importRecord(db, r, "")
+				if err != nil {
+					warn(err)
+					continue
+				}
+			}
+		} else {
+			for _, path := range args {
+				for filename := range getImportPathList(path) {
+					f, err := os.Open(filename)
+					if err != nil {
+						warn(err)
+						continue
+					}
+					recordPath := filepath.Dir(filename)
+
+					for r := range getRecordList(f) {
+						err := importRecord(db, r, recordPath)
+						if err != nil {
+							warn(err)
+							continue
+						}
+					}
+				}
+			}
+		}
+
+		fmt.Println("Import DONE")
 	},
 }
 
@@ -87,14 +309,14 @@ var recordDeleteCmd = &cobra.Command{
 		}
 
 		for _, arg := range args {
-			if err := odrecord.CheckRecordID(arg); err != nil {
+			if err := skyrecord.CheckRecordID(arg); err != nil {
 				fatal(err)
 			}
 		}
 
 		c := newContainer()
 
-		request := odcontainer.GenericRequest{}
+		request := skycontainer.GenericRequest{}
 		request.Payload = map[string]interface{}{
 			"database_id": usingDatabaseID(c),
 			"ids":         args,
@@ -115,14 +337,14 @@ var recordDeleteCmd = &cobra.Command{
 			fatal(fmt.Errorf("Unexpected server data."))
 		}
 
-		for i, _ := range resultArray {
+		for i := range resultArray {
 			resultData, ok := resultArray[i].(map[string]interface{})
 			if !ok {
 				warn(fmt.Errorf("Encountered unexpected server data."))
 			}
 
-			if odcontainer.IsError(resultData) {
-				serverError := odcontainer.MakeError(resultData)
+			if skycontainer.IsError(resultData) {
+				serverError := skycontainer.MakeError(resultData)
 				warn(formatRecordError(serverError))
 			}
 		}
@@ -135,7 +357,7 @@ var recordSetCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		checkMinArgCount(cmd, args, 2)
 
-		modifyRecord, err := odrecord.MakeEmptyRecord(args[0])
+		modifyRecord, err := skyrecord.MakeEmptyRecord(args[0])
 		if err != nil {
 			fatal(err)
 		}
@@ -162,7 +384,7 @@ var recordGetCmd = &cobra.Command{
 		checkMinArgCount(cmd, args, 2)
 		recordID := args[0]
 		desiredKey := args[1]
-		err := odrecord.CheckRecordID(recordID)
+		err := skyrecord.CheckRecordID(recordID)
 		if err != nil {
 			fatal(err)
 		}
@@ -182,7 +404,7 @@ var recordGetCmd = &cobra.Command{
 	},
 }
 
-func modifyWithEditor(record *odrecord.Record) error {
+func modifyWithEditor(record *skyrecord.Record) error {
 	recordBytes, err := json.MarshalIndent(record, "", "  ")
 	if err != nil {
 		return err
@@ -238,7 +460,7 @@ var recordEditCmd = &cobra.Command{
 
 		recordID := args[0]
 		if strings.Contains(recordID, "/") {
-			err := odrecord.CheckRecordID(recordID)
+			err := skyrecord.CheckRecordID(recordID)
 			if err != nil {
 				fatal(err)
 			}
@@ -247,11 +469,11 @@ var recordEditCmd = &cobra.Command{
 			createWhenEdit = true
 		}
 
-		var record *odrecord.Record
+		var record *skyrecord.Record
 		var err error
 		db := newDatabase()
 		if createWhenEdit {
-			record, _ = odrecord.MakeEmptyRecord(recordID)
+			record, _ = skyrecord.MakeEmptyRecord(recordID)
 		} else {
 			record, err = db.FetchRecord(recordID)
 			if err != nil {
@@ -287,7 +509,7 @@ var recordQueryCmd = &cobra.Command{
 
 		c := newContainer()
 
-		request := odcontainer.GenericRequest{}
+		request := skycontainer.GenericRequest{}
 		request.Payload = map[string]interface{}{
 			"database_id": usingDatabaseID(c),
 			"record_type": recordType,
@@ -308,14 +530,14 @@ var recordQueryCmd = &cobra.Command{
 			fatal(fmt.Errorf("Unexpected server data."))
 		}
 
-		for i, _ := range resultArray {
+		for i := range resultArray {
 			resultData, ok := resultArray[i].(map[string]interface{})
 			if !ok {
 				warn(fmt.Errorf("Encountered unexpected server data."))
 			}
 
-			if odcontainer.IsError(resultData) {
-				serverError := odcontainer.MakeError(resultData)
+			if skycontainer.IsError(resultData) {
+				serverError := skycontainer.MakeError(resultData)
 				warn(formatRecordError(serverError))
 				continue
 			}
@@ -329,20 +551,20 @@ func init() {
 	recordCmd.PersistentFlags().BoolVarP(&recordUsePrivateDatabase, "private", "p", false, "Database. Default is Public.")
 	viper.BindPFlag("use_private_database", recordCmd.PersistentFlags().Lookup("private"))
 
-	recordImportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "upload assets")
+	recordImportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "upload assets")
 	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be uploaded")
-	recordImportCmd.Flags().BoolVar(&promptComplexValue, "prompt-complex", true, "prompt when complex value is used")
+	recordImportCmd.Flags().BoolVarP(&promptComplexValue, "no-warn-complex", "i", true, "Ignore complex values conversion warnings.")
 
-	recordExportCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
+	recordExportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
 	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
 	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "path to save the output to. If not specified, output is printed to stdout.")
-	recordGetCmd.Flags().BoolVarP(&handleAsset, "asset", "a", false, "If value to the key is an asset, download the asset and output the content of the asset.")
+	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "If value to the key is an asset, download the asset and output the content of the asset.")
 
 	recordEditCmd.Flags().BoolVarP(&createWhenEdit, "new", "n", false, "do not fetch record from database before editing")
 
-	recordQueryCmd.Flags().BoolVarP(&handleAsset, "asset", "a", true, "download assets")
+	recordQueryCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
 	recordQueryCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "base path for locating files to be downloaded")
 	recordQueryCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "print output in a pretty format")
 	recordQueryCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")

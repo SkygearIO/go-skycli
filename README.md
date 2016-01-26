@@ -28,7 +28,7 @@ Usage: skycli record import [OPTIONS] [<path> ...]
 Import records to database.
 
   --skip-asset          Do not import asset.
-  -d, --basedir=        Base path for locating files to be uploaded.
+  -d, --basedir=        Base path for locating asset to be uploaded.
   -i, --no-warn-complex Ignore complex values conversion warnings.
 
 IMPORT PATH
@@ -40,7 +40,6 @@ is imported to database, as if each file is individually specified in the
 command argument.
 
 If <path> is not specified, the program reads record data from the stdin.
-Each record data must be delimited by a newline character.
 
 If record file contains value that points to a local file, the file
 will be uploaded to be an asset, after which the asset value will be
@@ -50,31 +49,32 @@ is specified, which will ignore any keys with value pointing to an asset.
 FILE FORMAT
 
 When importing and exporting, specified file should contain record data in
-JSON representation. For each key-value pair in record, a same pair exists in
-the top level JSON dictionary. User data should not use key that is
-prefixed with underscore `_`. Key that starts with underscore is reserved
-by system for special attribute such as `_id` for Record ID.
+JSON representation. Each file contains streaming multiple Json objects
+with/without any delimiters. For each key-value pair in record, a same pair
+exists in the top level JSON dictionary. Key that starts with underscore
+is reserved by system for special attribute and would not be allowed,
+except the `_id` for Record ID which is compulsory for each record.
 
 The file format is mostly the same as the JSON format specified by Skygear
 API specification, but skycli also supports a convenient shorthand for
 specifying complex values such as asset, location and reference.
 
 If the value of a key is such a complex one, begining the value with the string
-`@` will signal to skygear that such value is a complex one.
+`@` will signal to skycli that such value is a complex one.
 
 The format of complex values are as follows:
 
-  asset         @file:<pathtofile> (or @<pathtofile>)
+  asset         @file:<pathtofile>
                 @asset:<asset_id>
   location      @loc:<lat>,<lng>
   reference     @ref:<referenced_id>
-  string        @str:<literal> (or @@<literal>)
+  string        @str:<literal>
 
 When specifying a complex value of asset using a path, the path is relative
 to the location of the record file, rather than the current working directory.
 
 To escape a literal string that begins with a `@`, prefix a literal string
-with `@@`.
+with `@str:`.
 
 When a value is a string and it begins with a `@`, skycli will warn to user
 that the value will be converted to a relevant type. To skip this warning

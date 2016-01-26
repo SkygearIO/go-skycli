@@ -7,7 +7,7 @@ type SkygearRequest interface {
 	MakePayload() map[string]interface{}
 }
 
-// GenericRequest implements paylaod for a generic request
+// GenericRequest implements payload for a generic request
 type GenericRequest struct {
 	Payload map[string]interface{}
 }
