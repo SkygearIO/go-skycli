@@ -519,21 +519,21 @@ var recordGetCmd = &cobra.Command{
 	},
 }
 
-func modifyWithEditor(record *skyrecord.Record) error {
+func modifyWithEditor(record *skyrecord.Record) (*skyrecord.Record, error) {
 	recordBytes, err := record.PrettyPrintBytes()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	f, err := ioutil.TempFile("/tmp", "skycli")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
 
 	_, err = f.Write(recordBytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	editor := os.Getenv("EDITOR")
@@ -547,21 +547,24 @@ func modifyWithEditor(record *skyrecord.Record) error {
 	editorCmd.Stderr = os.Stderr
 	err = editorCmd.Run()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	f.Seek(0, 0)
 
 	jsonBytes, err := ioutil.ReadAll(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = json.Unmarshal(jsonBytes, record)
+	var data map[string]interface{}
+	err = json.Unmarshal(jsonBytes, &data)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	newRecord, err := skyrecord.MakeRecord(data)
+	return newRecord, err
 }
 
 var recordEditCmd = &cobra.Command{
@@ -595,7 +598,7 @@ var recordEditCmd = &cobra.Command{
 			}
 		}
 
-		err = modifyWithEditor(record)
+		record, err = modifyWithEditor(record)
 		if err != nil {
 			fatal(err)
 		}
