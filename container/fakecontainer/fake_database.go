@@ -131,3 +131,7 @@ func (d *FakeDatabase) SaveAsset(path string) (string, error) {
 func (d *FakeDatabase) RenameColumn(recordType, oldName, newName string) error {
 	return nil, nil
 }
+
+func (d *FakeDatabase) DeleteColumn(recordType, columnName string) error {
+	return nil, nil
+}

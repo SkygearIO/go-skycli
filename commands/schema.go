@@ -54,12 +54,14 @@ var schemaRemoveCmd = &cobra.Command{
 	Short:   "Remove a column from the schema of a record type",
 	Aliases: []string{"rm", "delete", "del"},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
-			cmd.Usage()
-			os.Exit(1)
-		}
+		checkMinArgCount(cmd, args, 2)
+		checkMaxArgCount(cmd, args, 2)
 
-		fmt.Println("not implemented")
+		db := newDatabase()
+		err := db.DeleteColumn(args[0], args[1])
+		if err != nil {
+			fatal(err)
+		}
 	},
 }
 
