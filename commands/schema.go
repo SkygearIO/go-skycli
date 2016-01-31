@@ -1,9 +1,6 @@
 package commands
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 )
 
@@ -24,12 +21,14 @@ var schemaAddCmd = &cobra.Command{
 	Use:   "add <record_type> <column_name> <column_def>",
 	Short: "Add a column to the schema of a record type",
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 3 {
-			cmd.Usage()
-			os.Exit(1)
-		}
+		checkMinArgCount(cmd, args, 3)
+		checkMaxArgCount(cmd, args, 3)
 
-		fmt.Println("not implemented")
+		db := newDatabase()
+		err := db.CreateColumn(args[0], args[1], args[2])
+		if err != nil {
+			fatal(err)
+		}
 	},
 }
 
