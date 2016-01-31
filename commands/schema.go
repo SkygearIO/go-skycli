@@ -38,12 +38,14 @@ var schemaMoveCmd = &cobra.Command{
 	Short:   "Give a new name to an existing column",
 	Aliases: []string{"mv"},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 3 {
-			cmd.Usage()
-			os.Exit(1)
-		}
+		checkMinArgCount(cmd, args, 3)
+		checkMaxArgCount(cmd, args, 3)
 
-		fmt.Println("not implemented")
+		db := newDatabase()
+		err := db.RenameColumn(args[0], args[1], args[2])
+		if err != nil {
+			fatal(err)
+		}
 	},
 }
 

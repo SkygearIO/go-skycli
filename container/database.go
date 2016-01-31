@@ -17,6 +17,8 @@ type SkyDB interface {
 	DeleteRecord([]string) error
 	FetchAsset(string) ([]byte, error)
 	SaveAsset(string) (string, error)
+
+	RenameColumn(string, string, string) error
 }
 
 type Database struct {
@@ -238,4 +240,23 @@ func (d *Database) SaveAsset(path string) (assetID string, err error) {
 	}
 
 	return
+}
+
+func (d *Database) RenameColumn(recordType, oldName, newName string) error {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"record_type": recordType,
+		"item_type":   "field",
+		"item_name":   oldName,
+		"new_name":    newName,
+	}
+
+	response, err := d.Container.MakeRequest("schema:rename", &request)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%+v\n", response)
+	return nil
 }
