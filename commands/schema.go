@@ -1,6 +1,9 @@
 package commands
 
 import (
+	"encoding/json"
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -64,8 +67,33 @@ var schemaRemoveCmd = &cobra.Command{
 	},
 }
 
+var schemaFetchCmd = &cobra.Command{
+	Use:   "fetch <record_type>",
+	Short: "Fetch the information of the current record schema",
+	Run: func(cmd *cobra.Command, args []string) {
+		checkMinArgCount(cmd, args, 0)
+		checkMaxArgCount(cmd, args, 0)
+
+		db := newDatabase()
+		result, err := db.FetchSchema()
+		if err != nil {
+			fatal(err)
+		}
+		printSchemaResult(result)
+	},
+}
+
+func printSchemaResult(result map[string]interface{}) {
+	b, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		fatal(err)
+	}
+	os.Stdout.Write(b)
+}
+
 func init() {
 	schemaCmd.AddCommand(schemaAddCmd)
 	schemaCmd.AddCommand(schemaMoveCmd)
 	schemaCmd.AddCommand(schemaRemoveCmd)
+	schemaCmd.AddCommand(schemaFetchCmd)
 }

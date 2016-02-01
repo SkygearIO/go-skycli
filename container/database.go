@@ -21,6 +21,7 @@ type SkyDB interface {
 	RenameColumn(string, string, string) error
 	DeleteColumn(string, string) error
 	CreateColumn(string, string, string) error
+	FetchSchema() (map[string]interface{}, error)
 }
 
 type Database struct {
@@ -254,12 +255,12 @@ func (d *Database) RenameColumn(recordType, oldName, newName string) error {
 		"new_name":    newName,
 	}
 
-	response, err := d.Container.MakeRequest("schema:rename", &request)
+	_, err := d.Container.MakeRequest("schema:rename", &request)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%+v\n", response)
+	//fmt.Printf("%+v\n", response)
 	return nil
 }
 
@@ -272,12 +273,12 @@ func (d *Database) DeleteColumn(recordType, columnName string) error {
 		"item_name":   columnName,
 	}
 
-	response, err := d.Container.MakeRequest("schema:delete", &request)
+	_, err := d.Container.MakeRequest("schema:delete", &request)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%+v\n", response)
+	//fmt.Printf("%+v\n", response)
 	return nil
 }
 
@@ -297,11 +298,40 @@ func (d *Database) CreateColumn(recordType, columnName, columnDef string) error 
 		},
 	}
 
-	response, err := d.Container.MakeRequest("schema:create", &request)
+	_, err := d.Container.MakeRequest("schema:create", &request)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("%+v\n", response)
+	//fmt.Printf("%+v\n", response)
 	return nil
+}
+
+func (d *Database) FetchSchema() (map[string]interface{}, error) {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+	}
+
+	response, err := d.Container.MakeRequest("schema:fetch", &request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		return nil, errors.New(requestError.Message)
+	}
+
+	result, ok := response.Payload["result"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Unexpected server data.")
+	}
+
+	recordTypes, ok := result["record_types"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Unexpected server data.")
+	}
+
+	return recordTypes, nil
 }
