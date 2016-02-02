@@ -255,8 +255,14 @@ func (d *Database) RenameColumn(recordType, oldName, newName string) error {
 		"new_name":    newName,
 	}
 
-	_, err := d.Container.MakeRequest("schema:rename", &request)
+	response, err := d.Container.MakeRequest("schema:rename", &request)
 	if err != nil {
+		return err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
 		return err
 	}
 
@@ -273,8 +279,13 @@ func (d *Database) DeleteColumn(recordType, columnName string) error {
 		"item_name":   columnName,
 	}
 
-	_, err := d.Container.MakeRequest("schema:delete", &request)
+	response, err := d.Container.MakeRequest("schema:delete", &request)
 	if err != nil {
+		return err
+	}
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
 		return err
 	}
 
@@ -298,8 +309,13 @@ func (d *Database) CreateColumn(recordType, columnName, columnDef string) error 
 		},
 	}
 
-	_, err := d.Container.MakeRequest("schema:create", &request)
+	response, err := d.Container.MakeRequest("schema:create", &request)
 	if err != nil {
+		return err
+	}
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
 		return err
 	}
 
