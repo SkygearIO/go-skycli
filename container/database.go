@@ -189,8 +189,8 @@ func (d *Database) DeleteRecord(recordIDList []string) error {
 	return nil
 }
 
-func (d *Database) FetchAsset(assetID string) (assetData []byte, err error) {
-	response, err := d.Container.GetAssetRequest(assetID)
+func (d *Database) FetchAsset(assetURL string) (assetData []byte, err error) {
+	response, err := d.Container.GetAssetRequest(assetURL)
 	if err != nil {
 		return nil, err
 	}

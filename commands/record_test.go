@@ -88,8 +88,17 @@ func TestUploadAssets(t *testing.T) {
 		err := uploadAssets(db, record, "")
 		So(err, ShouldBeNil)
 
-		assetRegexp := regexp.MustCompile("^@asset:.*somefile$")
-		ok := assetRegexp.MatchString(record.Data["file"].(string))
+		fileMap, ok := record.Data["file"].(map[string]interface{})
+		So(ok, ShouldBeTrue)
+
+		fileType, ok := fileMap["$type"].(string)
+		So(ok, ShouldBeTrue)
+		So(fileType, ShouldEqual, "asset")
+
+		fileName, ok := fileMap["$name"].(string)
+		So(ok, ShouldBeTrue)
+
+		ok = regexp.MustCompile(".*somefile$").MatchString(fileName)
 		So(ok, ShouldBeTrue)
 	})
 

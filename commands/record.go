@@ -139,8 +139,7 @@ func getImportPathList(rootPath string) <-chan string {
 }
 
 var (
-	uploadAssetRegexp   = regexp.MustCompile("^@file:")
-	downloadAssetRegexp = regexp.MustCompile("^@asset:")
+	uploadAssetRegexp = regexp.MustCompile("^@file:")
 )
 
 // upload or skip those assets in a record
@@ -167,7 +166,10 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 				if err != nil {
 					return err
 				}
-				record.Data[idx] = "@asset:" + assetID
+				record.Data[idx] = map[string]interface{}{
+					"$type": "asset",
+					"$name": assetID,
+				}
 			}
 		}
 	}
@@ -177,36 +179,43 @@ func uploadAssets(db skycontainer.SkyDB, record *skyrecord.Record, recordDir str
 // download those assets in a record
 func downloadAssets(db skycontainer.SkyDB, record *skyrecord.Record) error {
 	for idx, val := range record.Data {
-		valStr, ok := val.(string)
+		valMap, ok := val.(map[string]interface{})
 		if !ok {
 			continue
 		}
 
-		if downloadAssetRegexp.MatchString(valStr) {
-			assetID := downloadAssetRegexp.ReplaceAllString(valStr, "")
-			assetData, err := db.FetchAsset(assetID)
+		if valType, ok := valMap["$type"]; !ok || valType != "asset" {
+			continue
+		}
+
+		assetName, okName := valMap["$name"].(string)
+		assetURL, okURL := valMap["$url"].(string)
+		if !okName || !okURL {
+			continue
+		}
+
+		assetData, err := db.FetchAsset(assetURL)
+		if err != nil {
+			return err
+		}
+
+		var assetPath string
+		if assetBaseDirectory == "" {
+			assetPath = assetName
+		} else {
+			err := os.MkdirAll(assetBaseDirectory, 0755)
 			if err != nil {
 				return err
 			}
-
-			var assetPath string
-			if assetBaseDirectory == "" {
-				assetPath = assetID
-			} else {
-				err := os.MkdirAll(assetBaseDirectory, 0755)
-				if err != nil {
-					return err
-				}
-				assetPath = assetBaseDirectory + "/" + assetID
-			}
-
-			err = ioutil.WriteFile(assetPath, assetData, 0644)
-			if err != nil {
-				fatal(err)
-			}
-
-			record.Data[idx] = "@file:" + assetPath
+			assetPath = assetBaseDirectory + "/" + assetName
 		}
+
+		err = ioutil.WriteFile(assetPath, assetData, 0644)
+		if err != nil {
+			return err
+		}
+
+		record.Data[idx] = "@file:" + assetPath
 	}
 	return nil
 }

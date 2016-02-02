@@ -131,9 +131,8 @@ func (c *Container) PutAssetRequest(filename, contentType string, body io.Reader
 }
 
 // GetAssetRequest sends GET request to Skygear and get the corresponding asset.
-func (c *Container) GetAssetRequest(assetID string) (response []byte, err error) {
-	url := c.assetURL(assetID)
-	req, err := c.createRequest("GET", url, "", nil)
+func (c *Container) GetAssetRequest(assetURL string) (response []byte, err error) {
+	req, err := c.createRequest("GET", assetURL, "", nil)
 	if err != nil {
 		return nil, err
 	}
