@@ -68,7 +68,7 @@ var schemaRemoveCmd = &cobra.Command{
 }
 
 var schemaFetchCmd = &cobra.Command{
-	Use:   "fetch <record_type>",
+	Use:   "fetch",
 	Short: "Fetch the information of the current record schema",
 	Run: func(cmd *cobra.Command, args []string) {
 		checkMinArgCount(cmd, args, 0)
