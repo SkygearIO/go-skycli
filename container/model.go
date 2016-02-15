@@ -63,3 +63,7 @@ func MakeError(data map[string]interface{}) SkygearError {
 func IsError(data map[string]interface{}) bool {
 	return data["_type"] == "error"
 }
+
+func (e SkygearError) Error() string {
+	return e.Message
+}

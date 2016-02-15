@@ -9,7 +9,7 @@ import (
 
 // Record represents data that belongs to an Skygear record
 type Record struct {
-	RecordID string
+	RecordID string `json:"_id"`
 	Data     map[string]interface{}
 }
 
@@ -111,8 +111,8 @@ func (r *Record) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Validate check whether the record format is valid.
-func (r *Record) Validate() error {
+// PreUploadValidate check whether the record format is valid.
+func (r *Record) PreUploadValidate() error {
 	err := CheckRecordID(r.RecordID)
 	if err != nil {
 		return err
@@ -124,4 +124,26 @@ func (r *Record) Validate() error {
 		}
 	}
 	return nil
+}
+
+func (r *Record) PostDownloadHandle() error {
+	err := CheckRecordID(r.RecordID)
+	if err != nil {
+		return err
+	}
+
+	for idx := range r.Data {
+		if strings.HasPrefix(idx, "_") && idx != "_id" {
+			delete(r.Data, idx)
+		}
+	}
+	return nil
+}
+
+func (r *Record) PrettyPrintBytes() ([]byte, error) {
+	result, err := json.MarshalIndent(r, "", "    ")
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

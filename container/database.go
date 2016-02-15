@@ -12,7 +12,10 @@ import (
 
 type SkyDB interface {
 	FetchRecord(string) (*skyrecord.Record, error)
+	QueryRecord(string) ([]*skyrecord.Record, error)
 	SaveRecord(*skyrecord.Record) error
+	DeleteRecord([]string) error
+	FetchAsset(string) ([]byte, error)
 	SaveAsset(string) (string, error)
 }
 
@@ -61,6 +64,54 @@ func (d *Database) FetchRecord(recordID string) (record *skyrecord.Record, err e
 	return
 }
 
+func (d *Database) QueryRecord(recordType string) ([]*skyrecord.Record, error) {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"record_type": recordType,
+	}
+
+	response, err := d.Container.MakeRequest("record:query", &request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		return nil, errors.New(requestError.Message)
+	}
+
+	resultArray, ok := response.Payload["result"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Unexpected server data.")
+	}
+
+	var recordList []*skyrecord.Record
+	for _, r := range resultArray {
+		resultData, ok := r.(map[string]interface{})
+		if !ok {
+			warn(fmt.Errorf("Unexpected server data."))
+			continue
+		}
+
+		if IsError(resultData) {
+			serverError := MakeError(resultData)
+			warn(serverError)
+			continue
+		}
+
+		record, err := skyrecord.MakeRecord(resultData)
+		if err != nil {
+			warn(err)
+			continue
+		}
+
+		recordList = append(recordList, record)
+	}
+
+	return recordList, nil
+}
+
 func (d *Database) SaveRecord(record *skyrecord.Record) (err error) {
 	request := GenericRequest{}
 	request.Payload = map[string]interface{}{
@@ -99,6 +150,54 @@ func (d *Database) SaveRecord(record *skyrecord.Record) (err error) {
 	return
 }
 
+func (d *Database) DeleteRecord(recordIDList []string) error {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"ids":         recordIDList,
+	}
+
+	response, err := d.Container.MakeRequest("record:delete", &request)
+	if err != nil {
+		return err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		return errors.New(requestError.Message)
+	}
+
+	resultArray, ok := response.Payload["result"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Unexpected server data.")
+	}
+
+	for i := range resultArray {
+		resultData, ok := resultArray[i].(map[string]interface{})
+		if !ok {
+			warn(fmt.Errorf("Encountered unexpected server data."))
+			continue
+		}
+
+		if IsError(resultData) {
+			serverError := MakeError(resultData)
+			warn(serverError)
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (d *Database) FetchAsset(assetURL string) (assetData []byte, err error) {
+	response, err := d.Container.GetAssetRequest(assetURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func (d *Database) SaveAsset(path string) (assetID string, err error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -106,7 +205,6 @@ func (d *Database) SaveAsset(path string) (assetID string, err error) {
 	}
 	defer f.Close()
 
-	//TODO: check whether path is absolute
 	info, err := f.Stat()
 	if err != nil {
 		return
@@ -116,7 +214,7 @@ func (d *Database) SaveAsset(path string) (assetID string, err error) {
 	//TODO: Use other library to read mime type from content
 	filetype := mime.TypeByExtension(filepath.Ext(path))
 
-	response, err := d.Container.MakeAssetRequest("PUT", filename, filetype, f)
+	response, err := d.Container.PutAssetRequest(filename, filetype, f)
 	if err != nil {
 		return
 	}
