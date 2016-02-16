@@ -27,21 +27,6 @@ var recordOutputPath string
 var createWhenEdit bool
 var recordUsePrivateDatabase bool
 
-func usingDatabaseID(c *skycontainer.Container) string {
-	if recordUsePrivateDatabase {
-		return c.PrivateDatabaseID()
-	}
-	return c.PublicDatabaseID()
-}
-
-func newDatabase() *skycontainer.Database {
-	c := newContainer()
-	return &skycontainer.Database{
-		Container:  c,
-		DatabaseID: usingDatabaseID(c),
-	}
-}
-
 func formatRecordError(err skycontainer.SkygearError) error {
 	var fmtError error
 	if err.ID != "" {

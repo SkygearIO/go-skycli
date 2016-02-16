@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	skycontainer "github.com/oursky/skycli/container"
 	"github.com/spf13/cobra"
 )
 
@@ -47,5 +48,20 @@ func printValue(value interface{}) {
 		fmt.Printf("%s\n", data)
 	default:
 		fmt.Printf("%v\n", value)
+	}
+}
+
+func usingDatabaseID(c *skycontainer.Container) string {
+	if recordUsePrivateDatabase {
+		return c.PrivateDatabaseID()
+	}
+	return c.PublicDatabaseID()
+}
+
+func newDatabase() *skycontainer.Database {
+	c := newContainer()
+	return &skycontainer.Database{
+		Container:  c,
+		DatabaseID: usingDatabaseID(c),
 	}
 }

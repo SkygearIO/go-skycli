@@ -17,6 +17,11 @@ type SkyDB interface {
 	DeleteRecord([]string) error
 	FetchAsset(string) ([]byte, error)
 	SaveAsset(string) (string, error)
+
+	RenameColumn(string, string, string) error
+	DeleteColumn(string, string) error
+	CreateColumn(string, string, string) error
+	FetchSchema() (map[string]interface{}, error)
 }
 
 type Database struct {
@@ -238,4 +243,111 @@ func (d *Database) SaveAsset(path string) (assetID string, err error) {
 	}
 
 	return
+}
+
+func (d *Database) RenameColumn(recordType, oldName, newName string) error {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"record_type": recordType,
+		"item_type":   "field",
+		"item_name":   oldName,
+		"new_name":    newName,
+	}
+
+	response, err := d.Container.MakeRequest("schema:rename", &request)
+	if err != nil {
+		return err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
+		return err
+	}
+
+	//fmt.Printf("%+v\n", response)
+	return nil
+}
+
+func (d *Database) DeleteColumn(recordType, columnName string) error {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"record_type": recordType,
+		"item_type":   "field",
+		"item_name":   columnName,
+	}
+
+	response, err := d.Container.MakeRequest("schema:delete", &request)
+	if err != nil {
+		return err
+	}
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
+		return err
+	}
+
+	//fmt.Printf("%+v\n", response)
+	return nil
+}
+
+func (d *Database) CreateColumn(recordType, columnName, columnDef string) error {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+		"record_types": map[string]interface{}{
+			recordType: map[string]interface{}{
+				"fields": []map[string]string{
+					map[string]string{
+						"name": columnName,
+						"type": columnDef,
+					},
+				},
+			},
+		},
+	}
+
+	response, err := d.Container.MakeRequest("schema:create", &request)
+	if err != nil {
+		return err
+	}
+	if response.IsError() {
+		requestError := response.Error()
+		err = errors.New(requestError.Message)
+		return err
+	}
+
+	//fmt.Printf("%+v\n", response)
+	return nil
+}
+
+func (d *Database) FetchSchema() (map[string]interface{}, error) {
+	request := GenericRequest{}
+	request.Payload = map[string]interface{}{
+		"database_id": d.DatabaseID,
+	}
+
+	response, err := d.Container.MakeRequest("schema:fetch", &request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.IsError() {
+		requestError := response.Error()
+		return nil, errors.New(requestError.Message)
+	}
+
+	result, ok := response.Payload["result"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Unexpected server data.")
+	}
+
+	recordTypes, ok := result["record_types"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Unexpected server data.")
+	}
+
+	return recordTypes, nil
 }

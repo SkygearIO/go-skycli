@@ -127,3 +127,19 @@ func (d *FakeDatabase) SaveAsset(path string) (string, error) {
 
 	return assetID, nil
 }
+
+func (d *FakeDatabase) CreateColumn(recordType, columnName, columnDef string) error {
+	return nil
+}
+
+func (d *FakeDatabase) RenameColumn(recordType, oldName, newName string) error {
+	return nil
+}
+
+func (d *FakeDatabase) DeleteColumn(recordType, columnName string) error {
+	return nil
+}
+
+func (d *FakeDatabase) FetchSchema() (map[string]interface{}, error) {
+	return nil, nil
+}
