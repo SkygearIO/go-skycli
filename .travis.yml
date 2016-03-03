@@ -12,8 +12,6 @@ cache:
     - Godeps/_workspace
 
 before_install:
-
-before_script:
   - >
     go get golang.org/x/tools/cmd/stringer \
            golang.org/x/tools/cmd/cover \
