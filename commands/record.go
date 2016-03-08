@@ -417,9 +417,9 @@ var recordImportCmd = &cobra.Command{
 	},
 }
 
-var recordExportCmd = &cobra.Command{
-	Use:   "export <record_id> [<record_id> ...]",
-	Short: "Export records from database",
+var recordGetCmd = &cobra.Command{
+	Use:   "get <record_id> [<record_id> ...]",
+	Short: "Get records from database",
 	Run: func(cmd *cobra.Command, args []string) {
 		checkMinArgCount(cmd, args, 1)
 
@@ -488,8 +488,8 @@ var recordSetCmd = &cobra.Command{
 	},
 }
 
-var recordGetCmd = &cobra.Command{
-	Use:   "get <record_id> <key>",
+var recordGetAttrCmd = &cobra.Command{
+	Use:   "getattr <record_id> <key>",
 	Short: "Get value of a record attribute",
 	Run: func(cmd *cobra.Command, args []string) {
 		checkMinArgCount(cmd, args, 2)
@@ -638,17 +638,17 @@ func init() {
 	recordImportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for locating asset files to be uploaded")
 	recordImportCmd.Flags().BoolVarP(&forceConvertComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings and convert automatically.")
 
-	recordExportCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
-	recordExportCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded")
-	recordExportCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "Print output in a pretty format")
-	recordExportCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
+	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "download assets")
+	recordGetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded")
+	recordGetCmd.Flags().BoolVar(&prettyPrint, "pretty-print", false, "Print output in a pretty format")
+	recordGetCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 
 	recordSetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not upload assets")
 	recordSetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for locating files to be uploaded")
 	recordSetCmd.Flags().BoolVarP(&forceConvertComplexValue, "no-warn-complex", "i", false, "Ignore complex values conversion warnings and convert automatically.")
 
-	recordGetCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded.")
-	recordGetCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not download asset.")
+	recordGetAttrCmd.Flags().StringVarP(&assetBaseDirectory, "basedir", "d", "", "Base path for asset files to be downloaded.")
+	recordGetAttrCmd.Flags().BoolVar(&skipAsset, "skip-asset", false, "Do not download asset.")
 
 	recordEditCmd.Flags().BoolVarP(&createWhenEdit, "new", "n", false, "Do not fetch record from database before editing")
 
@@ -658,10 +658,10 @@ func init() {
 	recordQueryCmd.Flags().StringVarP(&recordOutputPath, "output", "o", "", "Path to save the output to. If not specified, output is printed to stdout with newline delimiter.")
 
 	recordCmd.AddCommand(recordImportCmd)
-	recordCmd.AddCommand(recordExportCmd)
+	recordCmd.AddCommand(recordGetCmd)
 	recordCmd.AddCommand(recordDeleteCmd)
 	recordCmd.AddCommand(recordSetCmd)
-	recordCmd.AddCommand(recordGetCmd)
+	recordCmd.AddCommand(recordGetAttrCmd)
 	recordCmd.AddCommand(recordEditCmd)
 	recordCmd.AddCommand(recordQueryCmd)
 }

@@ -1,23 +1,21 @@
-## skycli record query
+## skycli record getattr
 
-Query records from database
+Get value of a record attribute
 
 ### Synopsis
 
 
-Query records from database
+Get value of a record attribute
 
 ```
-skycli record query <record_type>
+skycli record getattr <record_id> <key>
 ```
 
 ### Options
 
 ```
-  -d, --basedir="": Base path for asset files to be downloaded
-  -o, --output="": Path to save the output to. If not specified, output is printed to stdout with newline delimiter.
-      --pretty-print[=false]: Print output in a pretty format
-      --skip-asset[=false]: Do not download assets
+  -d, --basedir="": Base path for asset files to be downloaded.
+      --skip-asset[=false]: Do not download asset.
 ```
 
 ### Options inherited from parent commands
