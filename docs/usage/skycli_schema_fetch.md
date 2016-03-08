@@ -1,14 +1,14 @@
-## skycli schema add
+## skycli schema fetch
 
-Add a column to the schema of a record type
+Fetch the information of the current record schema
 
 ### Synopsis
 
 
-Add a column to the schema of a record type
+Fetch the information of the current record schema
 
 ```
-skycli schema add <record_type> <column_name> <column_def>
+skycli schema fetch
 ```
 
 ### Options inherited from parent commands
