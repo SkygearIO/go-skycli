@@ -1,0 +1,5 @@
+FROM alpine:latest
+
+ADD skycli /usr/local/bin/skycli
+
+CMD ["/usr/local/bin/skycli"]
