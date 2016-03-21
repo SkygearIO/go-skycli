@@ -1,9 +1,6 @@
 {
 	"ImportPath": "github.com/oursky/skycli",
 	"GoVersion": "go1.5.1",
-	"Packages": [
-		"./..."
-	],
 	"Deps": [
 		{
 			"ImportPath": "github.com/BurntSushi/toml",
@@ -14,10 +11,6 @@
 			"ImportPath": "github.com/cpuguy83/go-md2man/md2man",
 			"Comment": "v1.0.4",
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
-		},
-		{
-			"ImportPath": "github.com/hashicorp/hcl",
-			"Rev": "197e8d3cf42199cfd53cd775deb37f3637234635"
 		},
 		{
 			"ImportPath": "github.com/kr/pretty",
@@ -32,6 +25,10 @@
 			"ImportPath": "github.com/magiconair/properties",
 			"Comment": "v1.5.5",
 			"Rev": "337395e44efb4affc8bf11971e22acbd4e27a32d"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "981ab348d865cf048eb7d17e78ac7192632d8415"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
@@ -69,11 +66,6 @@
 		{
 			"ImportPath": "github.com/twinj/uuid",
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
-		},
-		{
-			"ImportPath": "gopkg.in/fsnotify.v1",
-			"Comment": "v1.2.8",
-			"Rev": "508915b7500b6e42a87132e4afeb4729cebc7cbb"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",

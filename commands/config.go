@@ -3,8 +3,8 @@ package commands
 import (
 	"fmt"
 	"os"
-	"os/user"
 
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -21,11 +21,11 @@ func loadDefaultConfig() {
 }
 
 func defaultConfigLocation() string {
-	usr, err := user.Current()
+	path, err := homedir.Expand("~/.skycli/config.toml")
 	if err != nil {
 		fatal(err)
 	}
-	return usr.HomeDir + "/.skycli/config.toml"
+	return path
 }
 
 func LoadConfigFile() {
