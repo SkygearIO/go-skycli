@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/oursky/skycli/commands"
+import "github.com/skygeario/skycli/commands"
 
 func main() {
 	commands.Execute()

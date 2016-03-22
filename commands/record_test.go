@@ -19,8 +19,8 @@ import (
 	"regexp"
 	"testing"
 
-	fake "github.com/oursky/skycli/container/fakecontainer"
-	skyrecord "github.com/oursky/skycli/record"
+	fake "github.com/skygeario/skycli/container/fakecontainer"
+	skyrecord "github.com/skygeario/skycli/record"
 	. "github.com/smartystreets/goconvey/convey"
 )
 

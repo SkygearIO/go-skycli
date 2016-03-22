@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strings"
 
-	skyrecord "github.com/oursky/skycli/record"
+	skyrecord "github.com/skygeario/skycli/record"
 	"github.com/twinj/uuid"
 )
 

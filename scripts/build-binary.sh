@@ -11,6 +11,6 @@ mkdir -p $DIST
 for GOOS in darwin linux windows; do
   for GOARCH in 386 amd64; do
     FILENAME=$DAEMON_NAME-$GOOS-$GOARCH
-    GOOS=$GOOS GOARCH=$GOARCH go build -o $DIST/$FILENAME github.com/oursky/skycli
+    GOOS=$GOOS GOARCH=$GOARCH go build -o $DIST/$FILENAME github.com/skygeario/skycli
   done
 done

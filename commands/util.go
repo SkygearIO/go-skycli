@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	skycontainer "github.com/oursky/skycli/container"
+	skycontainer "github.com/skygeario/skycli/container"
 	"github.com/spf13/cobra"
 )
 

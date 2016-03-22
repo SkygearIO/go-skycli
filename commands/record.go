@@ -26,8 +26,8 @@ import (
 	"regexp"
 	"strings"
 
-	skycontainer "github.com/oursky/skycli/container"
-	skyrecord "github.com/oursky/skycli/record"
+	skycontainer "github.com/skygeario/skycli/container"
+	skyrecord "github.com/skygeario/skycli/record"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/twinj/uuid"
