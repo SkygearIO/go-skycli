@@ -57,6 +57,7 @@ func AddCommands() {
 	SkygearCliCmd.AddCommand(recordCmd)
 	SkygearCliCmd.AddCommand(schemaCmd)
 	SkygearCliCmd.AddCommand(generateDocCmd)
+	SkygearCliCmd.AddCommand(versionCmd)
 }
 
 func newContainer() *container.Container {
