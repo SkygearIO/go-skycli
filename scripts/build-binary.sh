@@ -1,16 +1,18 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
 DAEMON_NAME=skycli
-DIST=dist
 
-mkdir -p $DIST
+mkdir -p dist
 
 # build skygear server without C bindings
 for GOOS in darwin linux windows; do
   for GOARCH in 386 amd64; do
-    FILENAME=$DAEMON_NAME-$GOOS-$GOARCH
-    GOOS=$GOOS GOARCH=$GOARCH go build -o $DIST/$FILENAME github.com/skygeario/skycli
+    VERSION=`git describe --tags`
+    FILENAME=$DAEMON_NAME-$VERSION-$GOOS-$GOARCH
+    echo -n "Building $FILENAME... "
+    GOOS=$GOOS GOARCH=$GOARCH go build -o dist/$FILENAME github.com/skygeario/skycli
+    echo "Done"
   done
 done
