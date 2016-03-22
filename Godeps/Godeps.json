@@ -13,6 +13,10 @@
 			"Rev": "71acacd42f85e5e82f70a55327789582a5200a90"
 		},
 		{
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "2604f3bda7e8960c1be1063709e7d7f0765048d0"
+		},
+		{
 			"ImportPath": "github.com/kr/pretty",
 			"Comment": "go.weekly.2011-12-22-27-ge6ac2fc",
 			"Rev": "e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb"
@@ -66,6 +70,11 @@
 		{
 			"ImportPath": "github.com/twinj/uuid",
 			"Rev": "70cac2bcd273ef6a371bb96cde363d28b68734c3"
+		},
+		{
+			"ImportPath": "gopkg.in/fsnotify.v1",
+			"Comment": "v1.2.0",
+			"Rev": "96c060f6a6b7e0d6f75fddd10efeaca3e5d1bcb0"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
