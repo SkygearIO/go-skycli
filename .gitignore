@@ -1,3 +1,4 @@
 /tmp
+dist
 # go generated sources
 *_string.go
