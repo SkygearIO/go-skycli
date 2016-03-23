@@ -21,7 +21,7 @@ import (
 	"os"
 	"path/filepath"
 
-	skyrecord "github.com/oursky/skycli/record"
+	skyrecord "github.com/skygeario/skycli/record"
 )
 
 type SkyDB interface {
