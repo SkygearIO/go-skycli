@@ -12,7 +12,11 @@ for GOOS in darwin linux windows; do
     VERSION=`git describe --tags`
     FILENAME=$DAEMON_NAME-$VERSION-$GOOS-$GOARCH
     echo -n "Building $FILENAME... "
-    GOOS=$GOOS GOARCH=$GOARCH go build -o dist/$FILENAME github.com/skygeario/skycli
+    GOOS=$GOOS GOARCH=$GOARCH \
+        go build \
+        -ldflags "-X github.com/skygeario/skycli/commands.version=$VERSION" \
+        -o dist/$FILENAME \
+        github.com/skygeario/skycli
     echo "Done"
   done
 done
