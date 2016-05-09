@@ -1,3 +1,10 @@
+## 0.11.0 (2016-05-09)
+
+### Bug fixes
+- Update readme doc site url
+- Fix upload-binary.sh permission
+
+
 ## 0.10.0 (2016-04-13)
 
 ## Features
@@ -8,6 +15,7 @@
 - Update .gitignore
 - Add license notice (#40)
 - Fix cross compiling for OS X (#41)
+
 
 ## 0.9.0 (2016-03-16)
 
