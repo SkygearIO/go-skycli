@@ -35,7 +35,7 @@ var skygearAccessToken string
 func init() {
 	SkygearCliCmd.PersistentFlags().String("config", "", "Config file location. Default is $HOME/.skycli/config.toml")
 	SkygearCliCmd.PersistentFlags().StringVar(&skygearAPIKey, "api_key", "", "API Key")
-	SkygearCliCmd.PersistentFlags().StringVar(&skygearEndpoint, "endpoint", "", "Endpoint address")
+	SkygearCliCmd.PersistentFlags().StringVar(&skygearEndpoint, "endpoint", "", "Endpoint address (e.g. https://your-endpoint.skygeario.com/)")
 	SkygearCliCmd.PersistentFlags().StringVar(&skygearAccessToken, "access_token", "", "Access token")
 
 	viper.BindPFlag("access_token", SkygearCliCmd.PersistentFlags().Lookup("access_token"))

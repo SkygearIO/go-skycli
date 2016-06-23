@@ -31,7 +31,7 @@ type config struct {
 var Config config
 
 func loadDefaultConfig() {
-	viper.SetDefault("endpoint", "http://localhost:3000")
+	viper.SetDefault("endpoint", "http://localhost:3000/")
 }
 
 func defaultConfigLocation() string {
