@@ -38,7 +38,7 @@ type Container struct {
 
 // actionURL construct the corresponding URL to Skygear
 func (c *Container) actionURL(action string) string {
-	return c.Endpoint + "/" + strings.Replace(action, actionPartSeparator, requestPartSeparator, -1)
+	return c.Endpoint + strings.Replace(action, actionPartSeparator, requestPartSeparator, -1)
 }
 
 // createRequest add the necessary header to request
@@ -118,7 +118,7 @@ func (c *Container) MakeRequest(action string, request SkygearRequest) (response
 
 func (c *Container) assetURL(filename string) string {
 	expiredAt := time.Now().Add(time.Minute).UTC().Unix()
-	url := c.Endpoint + "/files/" + filename + "?expiredAt=" + fmt.Sprintf("%d", expiredAt)
+	url := c.Endpoint + "files/" + filename + "?expiredAt=" + fmt.Sprintf("%d", expiredAt)
 	return url
 }
 
