@@ -26,8 +26,11 @@ install:
 script:
   - golint commands | grep -v -f .golint.exclude; test $? -eq 1
   - golint container | grep -v -f .golint.exclude; test $? -eq 1
-  - go generate commands/... && go generate container/...
-  - gocyclo -skip-godeps -over 15 $(glide nv -x) | gogocyclo
+  - golint record | grep -v -f .golint.exclude; test $? -eq 1
+  - go generate commands/... && go generate container/... && go generate record/...
+  - gocyclo -over 15 commands | gogocyclo
+  - gocyclo -over 15 container | gogocyclo
+  - gocyclo -over 15 record | gogocyclo
   - go test -cover $(glide nv -x)
 
 before_deploy:

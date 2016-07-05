@@ -1,0 +1,79 @@
+hash: 535e8af252f1e554e3fd81061650aad2bc5f2a12e23ca6f27555b1309801175f
+updated: 2016-08-21T18:08:43.484346651+08:00
+imports:
+- name: github.com/BurntSushi/toml
+  version: 056c9bc7be7190eaa7715723883caffa5f8fa3e4
+- name: github.com/cpuguy83/go-md2man
+  version: 2724a9c9051aa62e9cca11304e7dd518e9e41599
+  subpackages:
+  - md2man
+- name: github.com/hashicorp/hcl
+  version: 2604f3bda7e8960c1be1063709e7d7f0765048d0
+  subpackages:
+  - hcl/ast
+  - hcl/parser
+  - hcl/token
+  - json/parser
+  - hcl/scanner
+  - hcl/strconv
+  - json/scanner
+  - json/token
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/kr/pretty
+  version: e6ac2fc51e89a3249e82157fa0bb7a18ef9dd5bb
+- name: github.com/kr/text
+  version: bb797dc4fb8320488f47bf11de07a733d7233e1f
+- name: github.com/magiconair/properties
+  version: e16141290883c13645e0c7c1b3507af621f8ed8a
+- name: github.com/mitchellh/go-homedir
+  version: 981ab348d865cf048eb7d17e78ac7192632d8415
+- name: github.com/mitchellh/mapstructure
+  version: 281073eb9eb092240d33ef253c404f1cca550309
+- name: github.com/russross/blackfriday
+  version: 8cec3a854e68dba10faabbe31c089abf4a3e57a6
+- name: github.com/shurcooL/sanitized_anchor_name
+  version: 244f5ac324cb97e1987ef901a0081a77bfd8e845
+- name: github.com/skygeario/skycli
+  version: 93e683f848d2b2f23d82df0d1bfb2597618c7b7c
+  subpackages:
+  - commands
+  - container
+  - record
+  - container/fakecontainer
+- name: github.com/spf13/cast
+  version: ee815aaf958c707ad07547cd62150d973710f747
+- name: github.com/spf13/cobra
+  version: 9c9300901990faada0c5fb3b5730f452585c7c2b
+  subpackages:
+  - doc
+- name: github.com/spf13/jwalterweatherman
+  version: 3d60171a64319ef63c78bd45bd60e6eab1e75f8b
+- name: github.com/spf13/pflag
+  version: b084184666e02084b8ccb9b704bf0d79c466eb1d
+- name: github.com/spf13/viper
+  version: 0c82789feb03da74b3390a5d64b8ce2ce9ba0f3e
+- name: github.com/twinj/uuid
+  version: 70cac2bcd273ef6a371bb96cde363d28b68734c3
+- name: gopkg.in/fsnotify.v1
+  version: 836bfd95fecc0f1511dd66bdbf2b5b61ab8b00b6
+- name: gopkg.in/yaml.v2
+  version: 7ad95dd0798a40da1ccdff6dff35fd177b5edf40
+testImports:
+- name: github.com/gopherjs/gopherjs
+  version: 72e303cb5f235b23471872477b57e573dc1c71d0
+  subpackages:
+  - js
+- name: github.com/jtolds/gls
+  version: 8ddce2a84170772b95dd5d576c48d517b22cac63
+- name: github.com/smartystreets/assertions
+  version: 2063fd1cc7c975db70502811a34b06ad034ccdf2
+  subpackages:
+  - internal/go-render/render
+  - internal/oglematchers
+- name: github.com/smartystreets/goconvey
+  version: 4622128e06c77c0174e17a7f0ed2db19a989b473
+  subpackages:
+  - convey
+  - convey/reporting
+  - convey/gotest

@@ -2,3 +2,4 @@
 dist
 # go generated sources
 *_string.go
+vendor
