@@ -1,3 +1,9 @@
+## 0.13.0 (2016-07-05)
+
+### Other notes
+
+- Update endpoint format (#9)
+
 ## 0.12.0 (2016-05-30)
 
 No change since last release
