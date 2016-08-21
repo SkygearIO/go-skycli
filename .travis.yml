@@ -17,7 +17,8 @@ before_install:
            github.com/golang/lint/golint \
            github.com/rickmak/gocyclo \
            github.com/oursky/gogocyclo \
-           github.com/Masterminds/glide
+           github.com/Masterminds/glide \
+           github.com/mitchellh/gox
 
 install:
   - glide install
@@ -34,7 +35,7 @@ script:
   - go test -cover $(glide nv -x)
 
 before_deploy:
-  - ./scripts/build-binary.sh
+  - make all
 
 deploy:
   - provider: releases
@@ -46,19 +47,11 @@ deploy:
     on:
       repo: SkygearIO/skycli
       tags: true
-  - provider: script
-    script: ./scripts/upload-binary.sh
-    skip_cleanup: true
-    on:
-      repo: SkygearIO/skycli
-      all_branches: true
 
 notifications:
   slack: oursky:PxqsclRADehuWEs51vpgxeUh
 
 env:
   global:
-    # BINTRAY_API_KEY (skygeario-builder)
-    - secure: "QNi+KqLGW9to8oY3AjPdl43FRgJpaCHZYM+ZXqDlUZFqwbD3TTPisFjA4EGNYtfKGOKyd4gyPuyaxNsmGrAkpTwNRyHYt7u0q09Hchi/pVDleVh8wpVV5StPUQI6Uxre3NPwbyYdfnzHCKKC8A0SDldjRvkeijmmFdWEVQI31BliinUbmUt7Z1fu0CCDBzoZ/Nz6clS9tLe8P8ZJEJIGqUOMGHvBy7QHRmccGEd6LTxYH75A3Fef0Fy4CwEC3+LMSwSxfOtbG2cj8lxOT2SXraFRfoAgRxUaVM/n04xippmDDrszrQDVKS6j0S0jyfc0D4o3HANo50gsDDArogBnTqI1nf/DgzT2VjKPJEUke3Ky8JV/JvQHQSo1iJq5nyN/L4I+/f4jbvjRHFJ/GSBes1RuCCGM/H62H9/Oa4NxVfWm4x5L9mebUvnueVILdgh1CH03SPao9KTm4qG9MI7mifX0gne7aep+sqNEUdiOgEkSp3Xd5cF7+T+k4ZTPkN5oNb4d34EoraeSWp5FaOuVcUKK3nRoSF2at0JnjTa9jWRqibRuQ/Oiz6uddKAqNc5KNf32aVTPl5iNTb08RJCxT9RgO4oNYzKWmy1lBldNajBzJiUFITY5ZoE1DVqNwYnM9IU7ufVUM/22d/IErAseiXR7ac6OOCZPZ9L2aWMY1gM="
     # GITHUB_RELEASE_TOKEN (cheungpat)
     - secure: "knbboDIpGnk+rbKs9Q6T1/Bai6NBfBo5dGy8UwIXXmQOgFpOL5OM4NEajckZl5dIrQiKlqR+3iuMRDLTlCeOtzCJ/r3QVlo62dWQsiBxb8GZHQNQXnBxqy9nlVeuuGA2qZwJStW0osnKcPyRTodlO4DR9MXtdBgYGqr/kvI4/Gvn9y3NZdVxBYfohlsB5v8oe8M/wZrTtl8zLiDxW2TfMl56FMNpEJ0ZAbSEYdRAJoPPevXjBkD5Ej9cdizlfsKPibqbfRvYN7lDlQz9TsX+GkNNw57krOmJXbzdnGU3lhEtfqmWaWknMqgQErMDH9f1ml1lT5FsFSEP0LJyrE/qhyVMLFUs5o+Qah3Y/rBjHZSVFuVflkGoWli9s5yxxZxCi/avtOxJ2q8I4LWJIB4FVhZx8FGtMBe/hbbvtrNtTvJ1Kt8BXG8zwLJFTk14+vvaBAyfK3mvMsHZaT/aGo/YQ7rgq1ISam4+yVuXjtVvj8rAEZQ8YX3/rBLUxSqzyTQt844Wk8B9pmqcJAP3ngUJaTCNn9ePPLWI0GbfeFzjMWPyft7MwcVq54hTVG6JpYQb8FXAAD+sUTJRvY5KzZpITqXFVm10CCl2quWs/3H9jBqHiUCi9zoxYtSiHOFu4YmLimqJhL8mxiuL1twWkT1aVBD2bPbcbIXw8GeQ+QcoQDk="
