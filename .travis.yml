@@ -2,14 +2,11 @@ language: go
 
 sudo: false
 
-go:
-  - 1.5
-  - 1.6
+go: 1.6
 
 cache:
   directories:
     - $HOME/.cache
-    - Godeps/_workspace
 
 go_import_path: github.com/skygeario/skycli
 
@@ -18,20 +15,27 @@ before_install:
     go get golang.org/x/tools/cmd/stringer \
            golang.org/x/tools/cmd/cover \
            github.com/golang/lint/golint \
-           github.com/smartystreets/goconvey/convey \
-           github.com/smartystreets/assertions \
            github.com/rickmak/gocyclo \
-           github.com/oursky/gogocyclo
-  - go get github.com/inconshreveable/mousetrap # godep does not include this
+           github.com/oursky/gogocyclo \
+           github.com/Masterminds/glide \
+           github.com/mitchellh/gox
+
+install:
+  - glide install
+  - go install
 
 script:
-  - golint ./... | grep -v -f .golint.exclude; test $? -eq 1
-  - go generate ./...
-  - gocyclo -skip-godeps -over 15 . | gogocyclo
-  - go test -cover ./...
+  - golint commands | grep -v -f .golint.exclude; test $? -eq 1
+  - golint container | grep -v -f .golint.exclude; test $? -eq 1
+  - golint record | grep -v -f .golint.exclude; test $? -eq 1
+  - go generate commands/... && go generate container/... && go generate record/...
+  - gocyclo -over 15 commands | gogocyclo
+  - gocyclo -over 15 container | gogocyclo
+  - gocyclo -over 15 record | gogocyclo
+  - go test -cover $(glide nv -x)
 
 before_deploy:
-  - ./scripts/build-binary.sh
+  - make all
 
 deploy:
   - provider: releases
@@ -42,22 +46,13 @@ deploy:
     file_glob: true
     on:
       repo: SkygearIO/skycli
-      go: 1.5
       tags: true
-  - provider: script
-    script: ./scripts/upload-binary.sh
-    skip_cleanup: true
-    on:
-      repo: SkygearIO/skycli
-      all_branches: true
-      go: 1.5
 
 notifications:
-  slack: oursky:PxqsclRADehuWEs51vpgxeUh
+  slack: 
+    secure: "bjiIoq/mo5VC+avVuqxoK9kAC/WwgChLz4gOXTW4mAVtOETEpjI18hVQDytVg2I/4Mv8cxjfsKLrEn0QcR6q8rbLy2XAR91iwWlNFhVfnK8velawzz2E8wCEhBgbLtcRg6pDf+LMDDJEa5ripbeoW0XEoGtpij7pHz+84g/VwWhF3j1kw5hgH0FT61MJQQRWOeVnFR2hFpKKekfTSyPhVuRGo8kza3xL9bTsprxf/EZI0bX9vTad6EtsIvO2o+w+wjkCuJZ0zIEnGXbud+Ll9aq9rYcbQHLzPrgxXVJjx26Reu66/Gu1gvFsNhiEtHxtdxWtgjT7tdXE9DzZP9p0CVsTLOiH6qstcJGRHECz5kV7XyvXl2Mc8VNkBqY4x1yJ8b41TU4ipz17IxCBV8B9KTLtyWAp0nVeRHKKPIemuXzGdeppvCZWZ9bgWskw7bF1qcMMomE9sLSvFYJC7MHQdvgVFzjOi9Yz9B5mecD2YaKesOFwO62k3JnG4roWr4FbilHcQI9Lfuwuu15IyRjRCN/6vdiHQh88k4KKKqM64Ytz4DXMz1tR+ij8FpS2MBKWaREVMnBF8EK0xe79Ie5L67i8MW/DBhNt5sKpFUQAfky6qUhM/uGhO/QN6tQrJLVKlWacO8Ie0psL6HH80398KEZ2/wnIpWp974W8fmzn2ts="
 
 env:
   global:
-    # BINTRAY_API_KEY (skygeario-builder)
-    - secure: "QNi+KqLGW9to8oY3AjPdl43FRgJpaCHZYM+ZXqDlUZFqwbD3TTPisFjA4EGNYtfKGOKyd4gyPuyaxNsmGrAkpTwNRyHYt7u0q09Hchi/pVDleVh8wpVV5StPUQI6Uxre3NPwbyYdfnzHCKKC8A0SDldjRvkeijmmFdWEVQI31BliinUbmUt7Z1fu0CCDBzoZ/Nz6clS9tLe8P8ZJEJIGqUOMGHvBy7QHRmccGEd6LTxYH75A3Fef0Fy4CwEC3+LMSwSxfOtbG2cj8lxOT2SXraFRfoAgRxUaVM/n04xippmDDrszrQDVKS6j0S0jyfc0D4o3HANo50gsDDArogBnTqI1nf/DgzT2VjKPJEUke3Ky8JV/JvQHQSo1iJq5nyN/L4I+/f4jbvjRHFJ/GSBes1RuCCGM/H62H9/Oa4NxVfWm4x5L9mebUvnueVILdgh1CH03SPao9KTm4qG9MI7mifX0gne7aep+sqNEUdiOgEkSp3Xd5cF7+T+k4ZTPkN5oNb4d34EoraeSWp5FaOuVcUKK3nRoSF2at0JnjTa9jWRqibRuQ/Oiz6uddKAqNc5KNf32aVTPl5iNTb08RJCxT9RgO4oNYzKWmy1lBldNajBzJiUFITY5ZoE1DVqNwYnM9IU7ufVUM/22d/IErAseiXR7ac6OOCZPZ9L2aWMY1gM="
     # GITHUB_RELEASE_TOKEN (cheungpat)
     - secure: "knbboDIpGnk+rbKs9Q6T1/Bai6NBfBo5dGy8UwIXXmQOgFpOL5OM4NEajckZl5dIrQiKlqR+3iuMRDLTlCeOtzCJ/r3QVlo62dWQsiBxb8GZHQNQXnBxqy9nlVeuuGA2qZwJStW0osnKcPyRTodlO4DR9MXtdBgYGqr/kvI4/Gvn9y3NZdVxBYfohlsB5v8oe8M/wZrTtl8zLiDxW2TfMl56FMNpEJ0ZAbSEYdRAJoPPevXjBkD5Ej9cdizlfsKPibqbfRvYN7lDlQz9TsX+GkNNw57krOmJXbzdnGU3lhEtfqmWaWknMqgQErMDH9f1ml1lT5FsFSEP0LJyrE/qhyVMLFUs5o+Qah3Y/rBjHZSVFuVflkGoWli9s5yxxZxCi/avtOxJ2q8I4LWJIB4FVhZx8FGtMBe/hbbvtrNtTvJ1Kt8BXG8zwLJFTk14+vvaBAyfK3mvMsHZaT/aGo/YQ7rgq1ISam4+yVuXjtVvj8rAEZQ8YX3/rBLUxSqzyTQt844Wk8B9pmqcJAP3ngUJaTCNn9ePPLWI0GbfeFzjMWPyft7MwcVq54hTVG6JpYQb8FXAAD+sUTJRvY5KzZpITqXFVm10CCl2quWs/3H9jBqHiUCi9zoxYtSiHOFu4YmLimqJhL8mxiuL1twWkT1aVBD2bPbcbIXw8GeQ+QcoQDk="
