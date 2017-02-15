@@ -1,4 +1,4 @@
-# skycli
+# skycli - Skygear Command Line Interface
 
 Please refer to the [Skygear
-Documentation](http://docs.skygear.io/tutorial/cli/intro/) for usage.
+Documentation](https://docs.skygear.io/guides/advanced/skycli/) for usage.
